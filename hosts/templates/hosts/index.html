@@ -1,0 +1,999 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CMDB Host Manager</title>
+    <style>
+        :root {
+            --page-bg: url("{% static 'hosts/visuals/bg/feather_sky.png' %}");
+            --ink: #182033;
+            --muted: #687386;
+            --line: #dfe6f0;
+            --panel: rgba(255, 255, 255, 0.94);
+            --panel-strong: #ffffff;
+            --accent: #246bfe;
+            --accent-soft: #eaf1ff;
+            --danger: #bd2b3a;
+            --shadow: 0 18px 44px rgba(32, 44, 72, 0.14);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font: 14px/1.5 Arial, "Microsoft YaHei", sans-serif;
+            background:
+                linear-gradient(180deg, rgba(245, 248, 253, 0.58), rgba(238, 243, 249, 0.72)),
+                var(--page-bg) center / cover fixed no-repeat;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .app-shell {
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            max-width: 1240px;
+            margin: 0 auto 16px;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(223, 230, 240, 0.86);
+            border-radius: 8px;
+            box-shadow: 0 10px 28px rgba(32, 44, 72, 0.08);
+            backdrop-filter: blur(4px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 220px;
+        }
+
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 700;
+            background: linear-gradient(135deg, #246bfe, #11a7a5);
+            box-shadow: 0 8px 20px rgba(36, 107, 254, 0.26);
+        }
+
+        .brand-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .brand-subtitle {
+            margin: 1px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .view-tools {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .segmented {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px;
+            background: rgba(236, 242, 250, 0.9);
+            border: 1px solid rgba(210, 220, 234, 0.95);
+            border-radius: 8px;
+        }
+
+        .segmented button {
+            min-width: 88px;
+            height: 30px;
+            padding: 0 10px;
+            color: #445066;
+            background: transparent;
+            border: 0;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .segmented button.active {
+            color: #17345f;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(37, 52, 82, 0.12);
+        }
+
+        .host-page {
+            max-width: 1240px;
+            margin: 0 auto;
+            display: grid;
+            gap: 16px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid rgba(223, 230, 240, 0.92);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(4px);
+        }
+
+        .filter-panel {
+            padding: 18px;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(150px, 1fr));
+            gap: 14px;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 6px;
+            color: #4b5568;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .field input,
+        .field select,
+        .pet-select {
+            width: 100%;
+            height: 36px;
+            padding: 0 10px;
+            color: #1f2937;
+            background: #fff;
+            border: 1px solid #cfd8e6;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .pet-select:focus {
+            border-color: #6ea0ff;
+            box-shadow: 0 0 0 3px rgba(36, 107, 254, 0.12);
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn-primary,
+        .btn-ghost,
+        .detail-btn {
+            height: 36px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .btn-primary {
+            padding: 0 18px;
+            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-primary:disabled {
+            background: #9ebbf8;
+            border-color: #9ebbf8;
+            cursor: wait;
+        }
+
+        .btn-ghost {
+            padding: 0 16px;
+            color: #235ed0;
+            background: #fff;
+            border-color: #b8caf1;
+        }
+
+        .status-text {
+            min-height: 20px;
+            color: var(--muted);
+        }
+
+        .status-text.is-error {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .table-panel {
+            overflow: hidden;
+        }
+
+        .table-scroll {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .host-table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+            background: var(--panel-strong);
+        }
+
+        .host-table th,
+        .host-table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid #edf1f7;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .host-table th {
+            color: #536070;
+            background: #f7f9fd;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .host-table td {
+            color: #253044;
+        }
+
+        .empty-row {
+            color: #7b8494;
+            text-align: center;
+        }
+
+        .detail-btn {
+            height: 30px;
+            padding: 0 10px;
+            color: #235ed0;
+            background: var(--accent-soft);
+            border-color: #cfe0ff;
+        }
+
+        .detail-panel {
+            display: none;
+            padding: 16px 18px 18px;
+        }
+
+        .detail-panel.active {
+            display: block;
+        }
+
+        .panel-title {
+            margin: 0 0 12px;
+            font-size: 16px;
+            line-height: 1.25;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .detail-item {
+            min-height: 72px;
+            padding: 10px;
+            background: #f8fafd;
+            border: 1px solid #e7edf6;
+            border-radius: 6px;
+        }
+
+        .detail-item span {
+            display: block;
+            color: #7b8494;
+            font-size: 12px;
+        }
+
+        .detail-item strong {
+            display: block;
+            margin-top: 5px;
+            color: #1f2d3d;
+            overflow-wrap: anywhere;
+        }
+
+        .pet-dock {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 168px;
+            z-index: 30;
+            user-select: none;
+            touch-action: none;
+            will-change: transform;
+        }
+
+        .pet-body {
+            display: block;
+            width: 100%;
+            height: 172px;
+            object-fit: contain;
+            object-position: bottom center;
+            cursor: grab;
+            filter: drop-shadow(0 14px 18px rgba(24, 32, 51, 0.22));
+            -webkit-user-drag: none;
+            user-drag: none;
+        }
+
+        .pet-body:active {
+            cursor: grabbing;
+        }
+
+        .pet-controls {
+            display: grid;
+            grid-template-columns: 1fr 34px;
+            gap: 6px;
+            align-items: center;
+            margin-top: 4px;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(214, 222, 235, 0.96);
+            border-radius: 8px;
+            box-shadow: 0 8px 18px rgba(32, 44, 72, 0.12);
+            backdrop-filter: blur(8px);
+        }
+
+        .pet-select {
+            height: 30px;
+            padding: 0 6px;
+            font-size: 12px;
+        }
+
+        .pet-reset {
+            width: 30px;
+            height: 30px;
+            color: #42526a;
+            background: #f5f8fc;
+            border: 1px solid #d9e1ec;
+            border-radius: 6px;
+        }
+
+        @media (max-width: 980px) {
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .view-tools {
+                justify-content: flex-start;
+            }
+
+            .filter-grid,
+            .detail-grid {
+                grid-template-columns: repeat(2, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .app-shell {
+                padding: 14px;
+            }
+
+            .filter-grid,
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .btn-primary,
+            .btn-ghost {
+                width: 100%;
+            }
+
+            .segmented {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .segmented button {
+                min-width: 82px;
+            }
+
+            .pet-dock {
+                width: 138px;
+            }
+
+            .pet-body {
+                height: 144px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">CM</div>
+            <div>
+                <h1 class="brand-title">CMDB Host Manager</h1>
+                <p class="brand-subtitle">BlueKing Configuration Platform</p>
+            </div>
+        </div>
+        <div class="view-tools" aria-label="View tools">
+            <div class="segmented" id="backgroundTools" aria-label="Background">
+                <button class="active" type="button" data-bg="feather">Feather sky</button>
+                <button type="button" data-bg="lighthouse">Lighthouse</button>
+                <button type="button" data-bg="clubroom">Clubroom</button>
+                <button type="button" data-bg="beach">Beach</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="host-page">
+        <section class="panel filter-panel">
+            <div class="filter-grid">
+                <div class="field">
+                    <label for="bizSelect">Business</label>
+                    <select id="bizSelect"></select>
+                </div>
+                <div class="field">
+                    <label for="setSelect">Set</label>
+                    <select id="setSelect"></select>
+                </div>
+                <div class="field">
+                    <label for="moduleSelect">Module</label>
+                    <select id="moduleSelect"></select>
+                </div>
+                <div class="field">
+                    <label for="hostNameInput">Host name</label>
+                    <input id="hostNameInput" type="text" placeholder="fuzzy search">
+                </div>
+                <div class="field">
+                    <label for="operatorInput">Operator</label>
+                    <input id="operatorInput" type="text" placeholder="operator">
+                </div>
+                <div class="field">
+                    <label for="backupInput">Backup operator</label>
+                    <input id="backupInput" type="text" placeholder="bk_bak_operator">
+                </div>
+                <div class="field">
+                    <label for="ipInput">Inner IP</label>
+                    <input id="ipInput" type="text" placeholder="10.0.">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn-primary" id="searchBtn" type="button">Search Hosts</button>
+                <button class="btn-ghost" id="resetBtn" type="button">Reset</button>
+                <span class="status-text" id="statusText"></span>
+            </div>
+        </section>
+
+        <section class="panel table-panel">
+            <div class="table-scroll">
+                <table class="host-table">
+                    <thead>
+                        <tr>
+                            <th>Host ID</th>
+                            <th>Inner IP</th>
+                            <th>Host name</th>
+                            <th>OS</th>
+                            <th>Operator</th>
+                            <th>Backup</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hostTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel detail-panel" id="detailPanel">
+            <h2 class="panel-title">Host Detail</h2>
+            <div class="detail-grid" id="detailGrid"></div>
+        </section>
+    </main>
+</div>
+
+<aside class="pet-dock" id="petDock" aria-label="Desktop pet">
+    <img class="pet-body" id="petBody" src="{% static 'hosts/visuals/pets/noa.png' %}" alt="Noa" draggable="false">
+    <div class="pet-controls">
+        <select class="pet-select" id="petSelect" aria-label="Pet">
+            <option value="noa">Noa</option>
+            <option value="amane">Amane</option>
+            <option value="kurumi">Kurumi</option>
+            <option value="kaguya">Kaguya</option>
+            <option value="orie">Orie</option>
+        </select>
+        <button class="pet-reset" id="petReset" type="button" title="Reset position">R</button>
+    </div>
+</aside>
+
+<script>
+const endpoints = {
+    businesses: "{% url 'hosts:businesses' %}",
+    sets: "{% url 'hosts:sets' %}",
+    modules: "{% url 'hosts:modules' %}",
+    hosts: "{% url 'hosts:hosts' %}",
+};
+
+const visualAssets = {
+    backgrounds: {
+        feather: "{% static 'hosts/visuals/bg/feather_sky.png' %}",
+        lighthouse: "{% static 'hosts/visuals/bg/sunny_lighthouse.png' %}",
+        clubroom: "{% static 'hosts/visuals/bg/clubroom.png' %}",
+        beach: "{% static 'hosts/visuals/bg/beach.png' %}",
+    },
+    pets: {
+        noa: "{% static 'hosts/visuals/pets/noa.png' %}",
+        amane: "{% static 'hosts/visuals/pets/amane.png' %}",
+        kurumi: "{% static 'hosts/visuals/pets/kurumi.png' %}",
+        kaguya: "{% static 'hosts/visuals/pets/kaguya.png' %}",
+        orie: "{% static 'hosts/visuals/pets/orie.png' %}",
+    },
+};
+
+const REQUEST_TIMEOUT_MS = 15000;
+const DETAIL_FIELD_ALLOWLIST = new Set([
+    "bk_host_id",
+    "bk_host_innerip",
+    "bk_host_outerip",
+    "bk_host_name",
+    "bk_os_name",
+    "bk_os_type",
+    "bk_cloud_id",
+    "bk_cloud_inst_id",
+    "bk_cpu",
+    "bk_mem",
+    "bk_disk",
+    "operator",
+    "bk_bak_operator",
+    "bk_asset_id",
+    "bk_sn",
+    "bk_comment",
+]);
+
+const detailFields = [
+    ["bk_host_id", "Host ID"],
+    ["bk_host_innerip", "Inner IP"],
+    ["bk_host_outerip", "Outer IP"],
+    ["bk_host_name", "Host name"],
+    ["bk_os_name", "OS"],
+    ["bk_os_type", "OS type"],
+    ["bk_cloud_id", "Cloud ID"],
+    ["bk_cloud_inst_id", "Cloud instance"],
+    ["bk_cpu", "CPU"],
+    ["bk_mem", "Memory MB"],
+    ["bk_disk", "Disk GB"],
+    ["operator", "Operator"],
+    ["bk_bak_operator", "Backup"],
+    ["bk_asset_id", "Asset ID"],
+    ["bk_sn", "Serial number"],
+    ["bk_comment", "Comment"],
+];
+
+function setStatus(text, tone) {
+    const status = document.getElementById("statusText");
+    status.textContent = text || "";
+    status.className = tone === "error" ? "status-text is-error" : "status-text";
+}
+
+function setBusy(buttonId, busy) {
+    const button = document.getElementById(buttonId);
+    button.disabled = busy;
+}
+
+function fillSelect(selectId, rows, valueKey, textKey, placeholder) {
+    const select = document.getElementById(selectId);
+    select.innerHTML = "";
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = placeholder;
+    select.appendChild(emptyOption);
+    rows.forEach((row) => {
+        const option = document.createElement("option");
+        option.value = row[valueKey];
+        option.textContent = row[textKey];
+        select.appendChild(option);
+    });
+}
+
+async function requestJson(url) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+        const response = await fetch(url, { credentials: "same-origin", signal: controller.signal });
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+            throw new Error(`Unexpected response ${response.status}. Please refresh the app or check deployment logs.`);
+        }
+        const payload = await response.json();
+        if (!response.ok || !payload.result) {
+            throw new Error(payload.message || `Request failed with status ${response.status}`);
+        }
+        return payload.data || [];
+    } catch (error) {
+        if (error.name === "AbortError") {
+            throw new Error("Request timed out. Please check CMDB connectivity and try again.");
+        }
+        throw error;
+    } finally {
+        window.clearTimeout(timer);
+    }
+}
+
+async function loadBusinesses() {
+    try {
+        setStatus("Loading businesses...");
+        const data = await requestJson(endpoints.businesses);
+        fillSelect("bizSelect", data, "bk_biz_id", "bk_biz_name", "Select business");
+        fillSelect("setSelect", [], "bk_set_id", "bk_set_name", "Select business first");
+        fillSelect("moduleSelect", [], "bk_module_id", "bk_module_name", "Select set first");
+        setStatus(data.length ? "" : "No available business found");
+    } catch (error) {
+        fillSelect("bizSelect", [], "bk_biz_id", "bk_biz_name", "Business unavailable");
+        fillSelect("setSelect", [], "bk_set_id", "bk_set_name", "Select business first");
+        fillSelect("moduleSelect", [], "bk_module_id", "bk_module_name", "Select set first");
+        setStatus(error.message, "error");
+    }
+}
+
+async function loadSets() {
+    const bizId = document.getElementById("bizSelect").value;
+    fillSelect("setSelect", [], "bk_set_id", "bk_set_name", "Select set");
+    fillSelect("moduleSelect", [], "bk_module_id", "bk_module_name", "Select set first");
+    if (!bizId) return;
+    try {
+        const data = await requestJson(`${endpoints.sets}?bk_biz_id=${encodeURIComponent(bizId)}`);
+        fillSelect("setSelect", data, "bk_set_id", "bk_set_name", "Select set");
+        setStatus("");
+    } catch (error) {
+        setStatus(error.message, "error");
+    }
+}
+
+async function loadModules() {
+    const bizId = document.getElementById("bizSelect").value;
+    const setId = document.getElementById("setSelect").value;
+    fillSelect("moduleSelect", [], "bk_module_id", "bk_module_name", "Select module");
+    if (!bizId || !setId) return;
+    try {
+        const params = new URLSearchParams({ bk_biz_id: bizId, bk_set_id: setId });
+        const data = await requestJson(`${endpoints.modules}?${params.toString()}`);
+        fillSelect("moduleSelect", data, "bk_module_id", "bk_module_name", "Select module");
+        setStatus("");
+    } catch (error) {
+        setStatus(error.message, "error");
+    }
+}
+
+function collectFilters() {
+    const params = new URLSearchParams();
+    const mapping = {
+        bk_biz_id: "bizSelect",
+        bk_set_id: "setSelect",
+        bk_module_id: "moduleSelect",
+        bk_host_name: "hostNameInput",
+        operator: "operatorInput",
+        bk_bak_operator: "backupInput",
+        bk_host_innerip: "ipInput",
+    };
+    Object.entries(mapping).forEach(([key, id]) => {
+        const value = document.getElementById(id).value.trim();
+        if (value) params.set(key, value);
+    });
+    return params;
+}
+
+async function searchHosts() {
+    const params = collectFilters();
+    if (!params.get("bk_biz_id")) {
+        setStatus("Select a business first");
+        return;
+    }
+    setBusy("searchBtn", true);
+    try {
+        setStatus("Searching hosts...");
+        const data = await requestJson(`${endpoints.hosts}?${params.toString()}`);
+        renderHosts(data);
+        setStatus(`${data.length} hosts found`);
+    } catch (error) {
+        renderHosts([]);
+        setStatus(error.message, "error");
+    } finally {
+        setBusy("searchBtn", false);
+    }
+}
+
+function renderHosts(rows) {
+    const tbody = document.getElementById("hostTableBody");
+    tbody.innerHTML = "";
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td class="empty-row" colspan="7">No hosts to display</td></tr>';
+        return;
+    }
+    rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${escapeHtml(row.bk_host_id || "")}</td>
+            <td>${escapeHtml(row.bk_host_innerip || "")}</td>
+            <td>${escapeHtml(row.bk_host_name || "")}</td>
+            <td>${escapeHtml(row.bk_os_name || "")}</td>
+            <td>${escapeHtml(row.operator || "")}</td>
+            <td>${escapeHtml(row.bk_bak_operator || "")}</td>
+            <td><button class="detail-btn" type="button" data-id="${escapeHtml(row.bk_host_id || "")}">Detail</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function showDetail(hostId) {
+    try {
+        setStatus("Loading detail...");
+        const data = await requestJson(`${endpoints.hosts}${encodeURIComponent(hostId)}/`);
+        const grid = document.getElementById("detailGrid");
+        grid.innerHTML = "";
+        const items = normalizeDetailItems(data);
+        if (!items.length) {
+            grid.innerHTML = '<div class="detail-item"><span>Detail</span><strong>No non-empty host fields returned</strong></div>';
+        }
+        items.forEach(([label, value]) => {
+            const item = document.createElement("div");
+            item.className = "detail-item";
+            item.innerHTML = `<span>${escapeHtml(label)}</span><strong>${escapeHtml(formatValue(value))}</strong>`;
+            grid.appendChild(item);
+        });
+        document.getElementById("detailPanel").classList.add("active");
+        setStatus("");
+    } catch (error) {
+        document.getElementById("detailPanel").classList.remove("active");
+        setStatus(error.message, "error");
+    }
+}
+
+function normalizeDetailItems(data) {
+    if (Array.isArray(data)) {
+        return data
+            .filter((item) => DETAIL_FIELD_ALLOWLIST.has(item.bk_property_id) && isMeaningfulValue(item.bk_property_value))
+            .map((item) => [
+                item.bk_property_name || item.bk_property_id || "Field",
+                item.bk_property_value,
+            ]);
+    }
+    if (data && typeof data === "object") {
+        const keyedItems = detailFields
+            .filter(([key]) => Object.prototype.hasOwnProperty.call(data, key) && isMeaningfulValue(data[key]))
+            .map(([key, label]) => [label, data[key]]);
+        if (keyedItems.length) {
+            return keyedItems;
+        }
+        return Object.entries(data)
+            .filter(([key, value]) => DETAIL_FIELD_ALLOWLIST.has(key) && isMeaningfulValue(value));
+    }
+    return [];
+}
+
+function isMeaningfulValue(value) {
+    if (value === null || value === undefined) {
+        return false;
+    }
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        return !["", "-", "none", "null"].includes(normalized);
+    }
+    if (Array.isArray(value)) {
+        return value.length > 0;
+    }
+    if (typeof value === "object") {
+        return Object.keys(value).length > 0;
+    }
+    return true;
+}
+
+function formatValue(value) {
+    if (typeof value === "object") {
+        return JSON.stringify(value);
+    }
+    return String(value);
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function applyBackground(name) {
+    const selected = visualAssets.backgrounds[name] ? name : "feather";
+    document.documentElement.style.setProperty("--page-bg", `url("${visualAssets.backgrounds[selected]}")`);
+    document.querySelectorAll("#backgroundTools button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.bg === selected);
+    });
+    window.localStorage.setItem("hostManagerBackground", selected);
+}
+
+function initBackgroundTools() {
+    const stored = window.localStorage.getItem("hostManagerBackground") || "feather";
+    applyBackground(stored);
+    document.getElementById("backgroundTools").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-bg]");
+        if (button) {
+            applyBackground(button.dataset.bg);
+        }
+    });
+}
+
+function initPet() {
+    const dock = document.getElementById("petDock");
+    const body = document.getElementById("petBody");
+    const select = document.getElementById("petSelect");
+    const reset = document.getElementById("petReset");
+    const savedPet = window.localStorage.getItem("hostManagerPet") || "noa";
+    const state = {
+        x: 0,
+        y: 0,
+        velocityY: 0,
+        dragging: false,
+        dragOffsetX: 0,
+        dragOffsetY: 0,
+        lastTime: performance.now(),
+    };
+
+    function size() {
+        return {
+            width: dock.offsetWidth || 148,
+            height: dock.offsetHeight || 180,
+        };
+    }
+
+    function floorY() {
+        return Math.max(12, window.innerHeight - size().height - 18);
+    }
+
+    function clampPosition() {
+        const box = size();
+        state.x = Math.min(Math.max(10, state.x), Math.max(10, window.innerWidth - box.width - 10));
+        state.y = Math.min(Math.max(10, state.y), floorY());
+    }
+
+    function resetPosition() {
+        const box = size();
+        state.x = Math.max(10, window.innerWidth - box.width - 28);
+        state.y = floorY();
+        state.velocityY = 0;
+        render(performance.now());
+    }
+
+    function setPet(name) {
+        const selected = visualAssets.pets[name] ? name : "noa";
+        body.src = visualAssets.pets[selected];
+        body.alt = selected.charAt(0).toUpperCase() + selected.slice(1);
+        select.value = selected;
+        window.localStorage.setItem("hostManagerPet", selected);
+    }
+
+    function render(time) {
+        const bob = state.dragging ? 0 : Math.sin(time / 640) * 4;
+        const sway = state.dragging ? 0 : Math.sin(time / 1200) * 3;
+        dock.style.transform = `translate3d(${state.x + sway}px, ${state.y + bob}px, 0)`;
+    }
+
+    function animate(time) {
+        const delta = Math.min(32, time - state.lastTime);
+        state.lastTime = time;
+        if (!state.dragging) {
+            const floor = floorY();
+            if (state.y < floor || state.velocityY > 0.01) {
+                state.velocityY += 0.0024 * delta;
+                state.y += state.velocityY * delta;
+                if (state.y > floor) {
+                    state.y = floor;
+                    state.velocityY = 0;
+                }
+            }
+            clampPosition();
+        }
+        render(time);
+        window.requestAnimationFrame(animate);
+    }
+
+    body.addEventListener("dragstart", (event) => {
+        event.preventDefault();
+    });
+
+    body.addEventListener("pointerdown", (event) => {
+        if (!event.isPrimary) return;
+        event.preventDefault();
+        state.dragging = true;
+        state.velocityY = 0;
+        state.dragOffsetX = event.clientX - state.x;
+        state.dragOffsetY = event.clientY - state.y;
+        body.setPointerCapture(event.pointerId);
+    });
+
+    body.addEventListener("pointermove", (event) => {
+        if (!state.dragging) return;
+        state.x = event.clientX - state.dragOffsetX;
+        state.y = event.clientY - state.dragOffsetY;
+        clampPosition();
+        render(performance.now());
+    });
+
+    body.addEventListener("pointerup", (event) => {
+        state.dragging = false;
+        state.velocityY = 0;
+        body.releasePointerCapture(event.pointerId);
+    });
+
+    body.addEventListener("pointercancel", () => {
+        state.dragging = false;
+    });
+
+    select.addEventListener("change", () => setPet(select.value));
+    reset.addEventListener("click", resetPosition);
+    document.addEventListener("keydown", (event) => {
+        if (event.key.toLowerCase() === "r" && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            const tagName = document.activeElement ? document.activeElement.tagName : "";
+            if (!["INPUT", "SELECT", "TEXTAREA"].includes(tagName)) {
+                resetPosition();
+            }
+        }
+    });
+    window.addEventListener("resize", resetPosition);
+    setPet(savedPet);
+    window.setTimeout(resetPosition, 50);
+    window.requestAnimationFrame(animate);
+}
+
+document.getElementById("bizSelect").addEventListener("change", loadSets);
+document.getElementById("setSelect").addEventListener("change", loadModules);
+document.getElementById("searchBtn").addEventListener("click", searchHosts);
+document.getElementById("resetBtn").addEventListener("click", () => {
+    document.querySelectorAll("input").forEach((input) => { input.value = ""; });
+    document.getElementById("bizSelect").value = "";
+    fillSelect("setSelect", [], "bk_set_id", "bk_set_name", "Select business first");
+    fillSelect("moduleSelect", [], "bk_module_id", "bk_module_name", "Select set first");
+    renderHosts([]);
+    document.getElementById("detailPanel").classList.remove("active");
+    setStatus("");
+});
+document.getElementById("hostTableBody").addEventListener("click", (event) => {
+    if (event.target.matches(".detail-btn")) {
+        showDetail(event.target.dataset.id);
+    }
+});
+
+renderHosts([]);
+initBackgroundTools();
+initPet();
+loadBusinesses();
+</script>
+</body>
+</html>

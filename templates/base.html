@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    {% block head %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BKVision Behavior Analytics</title>
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: #1d2738;
+            font: 14px/1.6 Arial, "Microsoft YaHei", sans-serif;
+            background: #f5f7fb;
+        }
+
+        .fallback-shell {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 56px 20px;
+        }
+
+        .fallback-panel {
+            padding: 28px;
+            background: #fff;
+            border: 1px solid #dce4ef;
+            border-radius: 8px;
+            box-shadow: 0 16px 36px rgba(32, 44, 72, 0.1);
+        }
+
+        .fallback-panel h1 {
+            margin: 0 0 10px;
+            font-size: 28px;
+        }
+
+        .fallback-panel p {
+            margin: 0 0 18px;
+            color: #667085;
+        }
+
+        .fallback-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .fallback-links a {
+            display: inline-flex;
+            align-items: center;
+            height: 36px;
+            padding: 0 14px;
+            color: #245fc7;
+            text-decoration: none;
+            background: #fff;
+            border: 1px solid #b9cae8;
+            border-radius: 6px;
+        }
+    </style>
+    {% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+    {% block base_js %}{% endblock %}
+    {% block extra_block %}{% endblock %}
+</body>
+</html>

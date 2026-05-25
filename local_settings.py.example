@@ -1,0 +1,12 @@
+from config import APP_CODE
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": APP_CODE,
+        "USER": "root",
+        "PASSWORD": "replace-with-your-local-mysql-root-password",
+        "HOST": "localhost",
+        "PORT": "3306",
+    },
+}

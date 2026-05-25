@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="fallback-shell">
+    <section class="fallback-panel">
+        <h1>BKVision Behavior Analytics</h1>
+        <p>Use the analytics dashboard as the entry point for this experiment.</p>
+        <div class="fallback-links">
+            <a href="{% url 'analytics:dashboard' %}">Analytics Dashboard</a>
+            <a href="{% url 'jobs:index' %}">JOB Console</a>
+            <a href="{% url 'hosts:index' %}">Host Manager</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

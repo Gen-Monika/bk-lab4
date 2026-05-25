@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.env
+dev.env
+local_settings.py
+staticfiles/

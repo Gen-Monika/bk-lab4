@@ -1,0 +1,16 @@
+specVersion: 3
+module:
+  language: Python
+  spec:
+    processes:
+      - name: web
+        procCommand: gunicorn wsgi -w 4 -b [::]:5000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+        services:
+          - name: web
+            exposedType:
+              name: bk/http
+            targetPort: 5000
+            port: 80
+    hooks:
+      preRelease:
+        procCommand: "python manage.py migrate --no-input"

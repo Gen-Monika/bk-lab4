@@ -1,0 +1,1109 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JOB Log Backup Console</title>
+    <style>
+        :root {
+            --page-bg: url("{% static 'hosts/visuals/bg/sunny_lighthouse.png' %}");
+            --bg: #eef3f8;
+            --panel: #ffffff;
+            --ink: #1d2738;
+            --muted: #667085;
+            --line: #dce4ef;
+            --accent: #2268f5;
+            --accent-soft: #edf4ff;
+            --success: #16845b;
+            --danger: #ba2f3b;
+            --shadow: 0 14px 36px rgba(32, 44, 72, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            font: 14px/1.5 Arial, "Microsoft YaHei", sans-serif;
+            background:
+                linear-gradient(180deg, rgba(239, 246, 255, 0.58), rgba(243, 246, 249, 0.76)),
+                var(--page-bg) center / cover fixed no-repeat;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .shell {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 22px;
+        }
+
+        .topbar,
+        .panel {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(220, 228, 239, 0.95);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(4px);
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 16px;
+            padding: 14px 18px;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            color: #fff;
+            font-weight: 700;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #2268f5, #10a37f);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.2;
+        }
+
+        .brand p {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .status {
+            color: var(--muted);
+            min-height: 20px;
+        }
+
+        .status.error {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .segmented {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px;
+            background: rgba(237, 244, 255, 0.9);
+            border: 1px solid rgba(204, 216, 236, 0.95);
+            border-radius: 8px;
+        }
+
+        .segmented button {
+            min-width: 84px;
+            height: 30px;
+            padding: 0 9px;
+            color: #445066;
+            background: transparent;
+            border: 0;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .segmented button.active {
+            color: #17345f;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(37, 52, 82, 0.12);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 360px minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .panel {
+            padding: 16px;
+        }
+
+        .panel h2 {
+            margin: 0 0 12px;
+            font-size: 16px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 6px;
+            color: #4d596b;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            height: 36px;
+            padding: 0 10px;
+            color: var(--ink);
+            background: #fff;
+            border: 1px solid #cbd6e4;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            border-color: #72a2ff;
+            box-shadow: 0 0 0 3px rgba(34, 104, 245, 0.12);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .btn-primary,
+        .btn-ghost,
+        .btn-link {
+            height: 34px;
+            padding: 0 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-primary:disabled {
+            background: #9bb8f2;
+            border-color: #9bb8f2;
+            cursor: wait;
+        }
+
+        .btn-ghost {
+            color: #245fc7;
+            background: #fff;
+            border-color: #b9cae8;
+        }
+
+        .btn-link {
+            height: 28px;
+            color: #245fc7;
+            background: var(--accent-soft);
+            border-color: #cfddf8;
+        }
+
+        .host-list {
+            display: grid;
+            gap: 8px;
+            max-height: 250px;
+            overflow: auto;
+            padding: 4px;
+            border: 1px solid #e1e8f2;
+            border-radius: 6px;
+            background: #f8fbff;
+        }
+
+        .host-row {
+            display: grid;
+            grid-template-columns: 20px 1fr;
+            gap: 8px;
+            align-items: center;
+            padding: 7px;
+            background: #fff;
+            border: 1px solid #ebf0f6;
+            border-radius: 6px;
+        }
+
+        .host-row strong,
+        .host-row span {
+            display: block;
+            overflow-wrap: anywhere;
+        }
+
+        .host-row span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .two-cols {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 640px;
+            border-collapse: collapse;
+            background: #fff;
+        }
+
+        th,
+        td {
+            padding: 10px 9px;
+            border-bottom: 1px solid #edf1f7;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            color: #526071;
+            background: #f7f9fd;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        td {
+            color: #243044;
+        }
+
+        .empty {
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 0 8px;
+            border-radius: 999px;
+            color: #4b5a6d;
+            background: #eef2f7;
+            font-size: 12px;
+        }
+
+        .badge.success {
+            color: var(--success);
+            background: #e7f7f0;
+        }
+
+        .badge.error {
+            color: var(--danger);
+            background: #fdecef;
+        }
+
+        .results {
+            display: grid;
+            gap: 10px;
+        }
+
+        .result-card {
+            padding: 10px;
+            background: #f8fbff;
+            border: 1px solid #e1e8f2;
+            border-radius: 6px;
+        }
+
+        .result-card strong,
+        .result-card span {
+            display: block;
+        }
+
+        .result-card span {
+            color: var(--muted);
+            overflow-wrap: anywhere;
+        }
+
+        .pet-dock {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 168px;
+            z-index: 30;
+            user-select: none;
+            touch-action: none;
+            will-change: transform;
+        }
+
+        .pet-body {
+            display: block;
+            width: 100%;
+            height: 172px;
+            object-fit: contain;
+            object-position: bottom center;
+            cursor: grab;
+            filter: drop-shadow(0 14px 18px rgba(24, 32, 51, 0.22));
+            -webkit-user-drag: none;
+            user-drag: none;
+        }
+
+        .pet-body:active {
+            cursor: grabbing;
+        }
+
+        .pet-controls {
+            display: grid;
+            grid-template-columns: 1fr 34px;
+            gap: 6px;
+            align-items: center;
+            margin-top: 4px;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(214, 222, 235, 0.96);
+            border-radius: 8px;
+            box-shadow: 0 8px 18px rgba(32, 44, 72, 0.12);
+            backdrop-filter: blur(8px);
+        }
+
+        .pet-select {
+            width: 100%;
+            height: 30px;
+            padding: 0 6px;
+            color: var(--ink);
+            background: #fff;
+            border: 1px solid #cbd6e4;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .pet-reset {
+            width: 30px;
+            height: 30px;
+            color: #42526a;
+            background: #f5f8fc;
+            border: 1px solid #d9e1ec;
+            border-radius: 6px;
+        }
+
+        @media (max-width: 980px) {
+            .grid,
+            .two-cols {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .topbar-right {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .shell {
+                padding: 14px;
+            }
+
+            .segmented {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .segmented button {
+                min-width: 80px;
+            }
+
+            .pet-dock {
+                width: 138px;
+            }
+
+            .pet-body {
+                height: 144px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">JOB</div>
+            <div>
+                <h1>JOB Log Backup Console</h1>
+                <p>BlueKing job plan execution and game host log backup</p>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="segmented" id="backgroundTools" aria-label="Background">
+                <button class="active" type="button" data-bg="lighthouse">Lighthouse</button>
+                <button type="button" data-bg="feather">Feather sky</button>
+                <button type="button" data-bg="clubroom">Clubroom</button>
+                <button type="button" data-bg="beach">Beach</button>
+            </div>
+            <div class="status" id="statusText"></div>
+        </div>
+    </header>
+
+    <main class="grid">
+        <section class="panel">
+            <h2>Host Scope</h2>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="bizSelect">Business</label>
+                    <select id="bizSelect"></select>
+                </div>
+                <div class="field">
+                    <label for="hostNameInput">Host name</label>
+                    <input id="hostNameInput" type="text" placeholder="optional">
+                </div>
+                <div class="field">
+                    <label for="operatorInput">Operator</label>
+                    <input id="operatorInput" type="text" placeholder="optional">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn-primary" id="loadHostsBtn" type="button">Load Hosts</button>
+                <button class="btn-ghost" id="reloadPlansBtn" type="button">Load Plans</button>
+            </div>
+            <div class="host-list" id="hostList" style="margin-top: 12px;"></div>
+        </section>
+
+        <div class="form-grid">
+            <section class="panel">
+                <h2>Job Plans</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Plan ID</th>
+                                <th>Name</th>
+                                <th>Creator</th>
+                                <th>Updated</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="planTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="two-cols">
+                <div class="panel">
+                    <h2>Search Logs</h2>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="searchPlanSelect">Search plan</label>
+                            <select id="searchPlanSelect"></select>
+                        </div>
+                        <div class="field">
+                            <label for="searchPathInput">Search path</label>
+                            <input id="searchPathInput" type="text" value="/project">
+                        </div>
+                        <div class="field">
+                            <label for="suffixInput">File suffix</label>
+                            <input id="suffixInput" type="text" value="log">
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-primary" id="searchFilesBtn" type="button">Search Files</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>Backup Logs</h2>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="backupPlanSelect">Backup plan</label>
+                            <select id="backupPlanSelect"></select>
+                        </div>
+                        <div class="field">
+                            <label for="backupPathInput">Backup path</label>
+                            <input id="backupPathInput" type="text" value="/project/backup">
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-primary" id="backupFilesBtn" type="button">Backup Selected</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>File Results</h2>
+                <div class="results" id="fileResults"></div>
+            </section>
+
+            <section class="panel">
+                <h2>Execution Records</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Action</th>
+                                <th>Instance</th>
+                                <th>Status</th>
+                                <th>Hosts</th>
+                                <th>Summary</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<aside class="pet-dock" id="petDock" aria-label="Desktop pet">
+    <img class="pet-body" id="petBody" src="{% static 'hosts/visuals/pets/noa.png' %}" alt="Noa" draggable="false">
+    <div class="pet-controls">
+        <select class="pet-select" id="petSelect" aria-label="Pet">
+            <option value="noa">Noa</option>
+            <option value="amane">Amane</option>
+            <option value="kurumi">Kurumi</option>
+            <option value="kaguya">Kaguya</option>
+            <option value="orie">Orie</option>
+        </select>
+        <button class="pet-reset" id="petReset" type="button" title="Reset position">R</button>
+    </div>
+</aside>
+
+<script>
+const endpoints = {
+    businesses: "{% url 'jobs:businesses' %}",
+    hosts: "{% url 'jobs:hosts' %}",
+    plans: "{% url 'jobs:plans' %}",
+    searchFiles: "{% url 'jobs:search_files' %}",
+    backupFiles: "{% url 'jobs:backup_files' %}",
+    records: "{% url 'jobs:records' %}",
+};
+
+const visualAssets = {
+    backgrounds: {
+        lighthouse: "{% static 'hosts/visuals/bg/sunny_lighthouse.png' %}",
+        feather: "{% static 'hosts/visuals/bg/feather_sky.png' %}",
+        clubroom: "{% static 'hosts/visuals/bg/clubroom.png' %}",
+        beach: "{% static 'hosts/visuals/bg/beach.png' %}",
+    },
+    pets: {
+        noa: "{% static 'hosts/visuals/pets/noa.png' %}",
+        amane: "{% static 'hosts/visuals/pets/amane.png' %}",
+        kurumi: "{% static 'hosts/visuals/pets/kurumi.png' %}",
+        kaguya: "{% static 'hosts/visuals/pets/kaguya.png' %}",
+        orie: "{% static 'hosts/visuals/pets/orie.png' %}",
+    },
+};
+
+const state = {
+    businesses: [],
+    hosts: [],
+    plans: [],
+    records: [],
+};
+
+function setStatus(message, tone) {
+    const el = document.getElementById("statusText");
+    el.textContent = message || "";
+    el.className = tone === "error" ? "status error" : "status";
+}
+
+function setBusy(id, busy) {
+    document.getElementById(id).disabled = busy;
+}
+
+function csrfToken() {
+    const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+}
+
+async function requestJson(url, options = {}) {
+    const response = await fetch(url, {
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken(),
+            ...(options.headers || {}),
+        },
+        ...options,
+    });
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+        throw new Error(`Unexpected response ${response.status}`);
+    }
+    const payload = await response.json();
+    if (!response.ok || !payload.result) {
+        throw new Error(payload.message || `Request failed with ${response.status}`);
+    }
+    return payload.data;
+}
+
+function fillSelect(id, rows, valueKey, textKey, placeholder) {
+    const select = document.getElementById(id);
+    select.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = placeholder;
+    select.appendChild(option);
+    rows.forEach((row) => {
+        const item = document.createElement("option");
+        item.value = row[valueKey];
+        item.textContent = row[textKey];
+        select.appendChild(item);
+    });
+}
+
+async function loadBusinesses() {
+    try {
+        setStatus("Loading businesses...");
+        state.businesses = await requestJson(endpoints.businesses);
+        fillSelect("bizSelect", state.businesses, "bk_biz_id", "bk_biz_name", "Select business");
+        setStatus("");
+    } catch (error) {
+        setStatus(error.message, "error");
+    }
+}
+
+async function loadHosts() {
+    const bizId = document.getElementById("bizSelect").value;
+    if (!bizId) {
+        setStatus("Select a business first");
+        return;
+    }
+    const params = new URLSearchParams({ bk_biz_id: bizId });
+    const hostName = document.getElementById("hostNameInput").value.trim();
+    const operator = document.getElementById("operatorInput").value.trim();
+    if (hostName) params.set("bk_host_name", hostName);
+    if (operator) params.set("operator", operator);
+    setBusy("loadHostsBtn", true);
+    try {
+        setStatus("Loading hosts...");
+        state.hosts = await requestJson(`${endpoints.hosts}?${params.toString()}`);
+        renderHosts();
+        setStatus(`${state.hosts.length} hosts loaded`);
+    } catch (error) {
+        state.hosts = [];
+        renderHosts();
+        setStatus(error.message, "error");
+    } finally {
+        setBusy("loadHostsBtn", false);
+    }
+}
+
+function renderHosts() {
+    const box = document.getElementById("hostList");
+    box.innerHTML = "";
+    if (!state.hosts.length) {
+        box.innerHTML = '<div class="empty">No hosts loaded</div>';
+        return;
+    }
+    state.hosts.forEach((host) => {
+        const label = document.createElement("label");
+        label.className = "host-row";
+        label.innerHTML = `
+            <input type="checkbox" value="${escapeHtml(host.bk_host_id || "")}">
+            <span>
+                <strong>${escapeHtml(host.bk_host_name || host.bk_host_innerip || "Unnamed host")}</strong>
+                <span>${escapeHtml(host.bk_host_innerip || "")} / ${escapeHtml(host.operator || "")}</span>
+            </span>
+        `;
+        box.appendChild(label);
+    });
+}
+
+async function loadPlans() {
+    const bizId = document.getElementById("bizSelect").value;
+    if (!bizId) {
+        setStatus("Select a business first");
+        return;
+    }
+    setBusy("reloadPlansBtn", true);
+    try {
+        setStatus("Loading job plans...");
+        state.plans = await requestJson(`${endpoints.plans}?bk_biz_id=${encodeURIComponent(bizId)}`);
+        renderPlans();
+        fillPlanSelects();
+        setStatus(`${state.plans.length} plans loaded`);
+    } catch (error) {
+        state.plans = [];
+        renderPlans();
+        fillPlanSelects();
+        setStatus(error.message, "error");
+    } finally {
+        setBusy("reloadPlansBtn", false);
+    }
+}
+
+function renderPlans() {
+    const tbody = document.getElementById("planTableBody");
+    tbody.innerHTML = "";
+    if (!state.plans.length) {
+        tbody.innerHTML = '<tr><td class="empty" colspan="5">No plans loaded</td></tr>';
+        return;
+    }
+    state.plans.forEach((plan) => {
+        const row = document.createElement("tr");
+        const id = plan.id || plan.job_plan_id;
+        row.innerHTML = `
+            <td>${escapeHtml(id || "")}</td>
+            <td>${escapeHtml(plan.name || plan.job_plan_name || "")}</td>
+            <td>${escapeHtml(plan.creator || plan.create_user || "")}</td>
+            <td>${escapeHtml(plan.update_time || plan.create_time || "")}</td>
+            <td><button class="btn-link" type="button" data-plan="${escapeHtml(id || "")}">Use</button></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function fillPlanSelects() {
+    const rows = state.plans.map((plan) => ({
+        id: plan.id || plan.job_plan_id,
+        name: `${plan.id || plan.job_plan_id} / ${plan.name || plan.job_plan_name || "Unnamed plan"}`,
+    }));
+    fillSelect("searchPlanSelect", rows, "id", "name", "Select search plan");
+    fillSelect("backupPlanSelect", rows, "id", "name", "Select backup plan");
+}
+
+function selectedHosts() {
+    return Array.from(document.querySelectorAll("#hostList input:checked"))
+        .map((input) => Number(input.value))
+        .filter(Boolean);
+}
+
+function executionPayload(planSelectId) {
+    const bkBizId = Number(document.getElementById("bizSelect").value);
+    const jobPlanId = Number(document.getElementById(planSelectId).value);
+    const hostIds = selectedHosts();
+    if (!bkBizId) throw new Error("Select a business first");
+    if (!jobPlanId) throw new Error("Select a job plan first");
+    if (!hostIds.length) throw new Error("Select at least one host");
+    return { bk_biz_id: bkBizId, job_plan_id: jobPlanId, host_ids: hostIds };
+}
+
+async function searchFiles() {
+    setBusy("searchFilesBtn", true);
+    try {
+        const payload = {
+            ...executionPayload("searchPlanSelect"),
+            search_path: document.getElementById("searchPathInput").value.trim(),
+            suffix: document.getElementById("suffixInput").value.trim(),
+        };
+        setStatus("Executing search plan...");
+        const data = await requestJson(endpoints.searchFiles, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+        renderFileResults(data.logs || []);
+        await loadRecords();
+        setStatus("Search execution submitted");
+    } catch (error) {
+        setStatus(error.message, "error");
+    } finally {
+        setBusy("searchFilesBtn", false);
+    }
+}
+
+async function backupFiles() {
+    setBusy("backupFilesBtn", true);
+    try {
+        const payload = {
+            ...executionPayload("backupPlanSelect"),
+            search_path: document.getElementById("searchPathInput").value.trim(),
+            suffix: document.getElementById("suffixInput").value.trim(),
+            backup_path: document.getElementById("backupPathInput").value.trim(),
+        };
+        setStatus("Executing backup plan...");
+        const data = await requestJson(endpoints.backupFiles, {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+        renderFileResults(data.logs || []);
+        await loadRecords();
+        setStatus("Backup execution submitted");
+    } catch (error) {
+        setStatus(error.message, "error");
+    } finally {
+        setBusy("backupFilesBtn", false);
+    }
+}
+
+function renderFileResults(rows) {
+    const box = document.getElementById("fileResults");
+    box.innerHTML = "";
+    if (!rows.length) {
+        box.innerHTML = '<div class="empty">No file result returned yet</div>';
+        return;
+    }
+    rows.forEach((row) => {
+        const card = document.createElement("div");
+        card.className = "result-card";
+        card.innerHTML = `
+            <strong>Host ${escapeHtml(row.bk_host_id || "")}</strong>
+            <span>Files: ${escapeHtml(row.bk_file_list || row.log_content || row.message || "")}</span>
+            <span>Count: ${escapeHtml(row.bk_file_cnt ?? "")}</span>
+            <span>Total size: ${escapeHtml(row.bk_file_total_size ?? "")}</span>
+        `;
+        box.appendChild(card);
+    });
+}
+
+async function loadRecords() {
+    try {
+        state.records = await requestJson(endpoints.records);
+        renderRecords();
+    } catch (error) {
+        setStatus(error.message, "error");
+    }
+}
+
+function renderRecords() {
+    const tbody = document.getElementById("recordTableBody");
+    tbody.innerHTML = "";
+    if (!state.records.length) {
+        tbody.innerHTML = '<tr><td class="empty" colspan="7">No execution records</td></tr>';
+        return;
+    }
+    state.records.forEach((record) => {
+        const row = document.createElement("tr");
+        const statusTone = record.status === 3 ? "success" : (record.status === 4 ? "error" : "");
+        row.innerHTML = `
+            <td>${escapeHtml(record.created_at)}</td>
+            <td>${escapeHtml(record.action)}</td>
+            <td><a href="${escapeHtml(record.job_url)}" target="_blank">${escapeHtml(record.job_instance_id || "")}</a></td>
+            <td><span class="badge ${statusTone}">${escapeHtml(record.status_text)}</span></td>
+            <td>${escapeHtml(record.bk_host_ids)}</td>
+            <td>${escapeHtml(record.result_summary || record.error_message || "")}</td>
+            <td><button class="btn-link" type="button" data-record="${escapeHtml(record.id)}">Refresh</button></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+async function refreshRecord(recordId) {
+    try {
+        setStatus("Refreshing status...");
+        await requestJson(`${endpoints.records}${recordId}/refresh/`, {
+            method: "POST",
+            body: "{}",
+        });
+        await loadRecords();
+        setStatus("");
+    } catch (error) {
+        setStatus(error.message, "error");
+    }
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function applyBackground(name) {
+    const selected = visualAssets.backgrounds[name] ? name : "lighthouse";
+    document.documentElement.style.setProperty("--page-bg", `url("${visualAssets.backgrounds[selected]}")`);
+    document.querySelectorAll("#backgroundTools button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.bg === selected);
+    });
+    window.localStorage.setItem("jobConsoleBackground", selected);
+}
+
+function initBackgroundTools() {
+    const stored = window.localStorage.getItem("jobConsoleBackground") || "lighthouse";
+    applyBackground(stored);
+    document.getElementById("backgroundTools").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-bg]");
+        if (button) {
+            applyBackground(button.dataset.bg);
+        }
+    });
+}
+
+function initPet() {
+    const dock = document.getElementById("petDock");
+    const body = document.getElementById("petBody");
+    const select = document.getElementById("petSelect");
+    const reset = document.getElementById("petReset");
+    const savedPet = window.localStorage.getItem("jobConsolePet") || "noa";
+    const state = {
+        x: 0,
+        y: 0,
+        velocityY: 0,
+        dragging: false,
+        dragOffsetX: 0,
+        dragOffsetY: 0,
+        lastTime: performance.now(),
+    };
+
+    function size() {
+        return {
+            width: dock.offsetWidth || 168,
+            height: dock.offsetHeight || 220,
+        };
+    }
+
+    function floorY() {
+        return Math.max(12, window.innerHeight - size().height - 18);
+    }
+
+    function clampPosition() {
+        const box = size();
+        state.x = Math.min(Math.max(10, state.x), Math.max(10, window.innerWidth - box.width - 10));
+        state.y = Math.min(Math.max(10, state.y), floorY());
+    }
+
+    function resetPosition() {
+        const box = size();
+        state.x = Math.max(10, window.innerWidth - box.width - 28);
+        state.y = floorY();
+        state.velocityY = 0;
+        render(performance.now());
+    }
+
+    function setPet(name) {
+        const selected = visualAssets.pets[name] ? name : "noa";
+        body.src = visualAssets.pets[selected];
+        body.alt = selected.charAt(0).toUpperCase() + selected.slice(1);
+        select.value = selected;
+        window.localStorage.setItem("jobConsolePet", selected);
+    }
+
+    function render(time) {
+        const bob = state.dragging ? 0 : Math.sin(time / 640) * 4;
+        const sway = state.dragging ? 0 : Math.sin(time / 1200) * 3;
+        dock.style.transform = `translate3d(${state.x + sway}px, ${state.y + bob}px, 0)`;
+    }
+
+    function animate(time) {
+        const delta = Math.min(32, time - state.lastTime);
+        state.lastTime = time;
+        if (!state.dragging) {
+            const floor = floorY();
+            if (state.y < floor || state.velocityY > 0.01) {
+                state.velocityY += 0.0024 * delta;
+                state.y += state.velocityY * delta;
+                if (state.y > floor) {
+                    state.y = floor;
+                    state.velocityY = 0;
+                }
+            }
+            clampPosition();
+        }
+        render(time);
+        window.requestAnimationFrame(animate);
+    }
+
+    body.addEventListener("dragstart", (event) => {
+        event.preventDefault();
+    });
+
+    body.addEventListener("pointerdown", (event) => {
+        if (!event.isPrimary) return;
+        event.preventDefault();
+        state.dragging = true;
+        state.velocityY = 0;
+        state.dragOffsetX = event.clientX - state.x;
+        state.dragOffsetY = event.clientY - state.y;
+        body.setPointerCapture(event.pointerId);
+    });
+
+    body.addEventListener("pointermove", (event) => {
+        if (!state.dragging) return;
+        state.x = event.clientX - state.dragOffsetX;
+        state.y = event.clientY - state.dragOffsetY;
+        clampPosition();
+        render(performance.now());
+    });
+
+    body.addEventListener("pointerup", (event) => {
+        state.dragging = false;
+        state.velocityY = 0;
+        body.releasePointerCapture(event.pointerId);
+    });
+
+    body.addEventListener("pointercancel", () => {
+        state.dragging = false;
+    });
+
+    select.addEventListener("change", () => setPet(select.value));
+    reset.addEventListener("click", resetPosition);
+    document.addEventListener("keydown", (event) => {
+        if (event.key.toLowerCase() === "r" && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            const tagName = document.activeElement ? document.activeElement.tagName : "";
+            if (!["INPUT", "SELECT", "TEXTAREA"].includes(tagName)) {
+                resetPosition();
+            }
+        }
+    });
+    window.addEventListener("resize", resetPosition);
+    setPet(savedPet);
+    window.setTimeout(resetPosition, 50);
+    window.requestAnimationFrame(animate);
+}
+
+document.getElementById("loadHostsBtn").addEventListener("click", loadHosts);
+document.getElementById("reloadPlansBtn").addEventListener("click", loadPlans);
+document.getElementById("searchFilesBtn").addEventListener("click", searchFiles);
+document.getElementById("backupFilesBtn").addEventListener("click", backupFiles);
+document.getElementById("planTableBody").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-plan]");
+    if (button) {
+        document.getElementById("searchPlanSelect").value = button.dataset.plan;
+        document.getElementById("backupPlanSelect").value = button.dataset.plan;
+    }
+});
+document.getElementById("recordTableBody").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-record]");
+    if (button) {
+        refreshRecord(button.dataset.record);
+    }
+});
+document.getElementById("bizSelect").addEventListener("change", () => {
+    state.hosts = [];
+    state.plans = [];
+    renderHosts();
+    renderPlans();
+    fillPlanSelects();
+});
+
+renderHosts();
+renderPlans();
+renderFileResults([]);
+renderRecords();
+initBackgroundTools();
+initPet();
+loadBusinesses();
+loadRecords();
+</script>
+</body>
+</html>
