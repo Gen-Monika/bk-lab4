@@ -17,6 +17,8 @@ Started the fourth BlueKing SaaS course project from the finished JOB console. T
 - Added `BKVISION_DASHBOARD_URL` support for embedding a published BKVision dashboard through an iframe.
 - Reused the polished visual theme controls and draggable desktop pet interaction from the previous labs.
 - Kept the JOB log search and backup workflow as the behavior source for the analytics experiment.
+- Updated behavior path matching to support BlueKing deployment prefixes such as `/stag--bk-lab4/`.
+- Added explicit return links from the JOB and CMDB pages back to the analytics dashboard.
 
 ## Verification
 

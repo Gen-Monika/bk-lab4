@@ -71,6 +71,7 @@ class RecordUserBehaviorMiddleware(MiddlewareMixin):
 
 def resolve_behavior(path):
     normalized = normalize_path(path)
+    normalized = strip_deployment_prefix(normalized)
     if normalized.startswith("/hosts/api/hosts/") and normalized != "/hosts/api/hosts/":
         return "CMDB", "host-detail"
     if normalized.startswith("/jobs/api/plans/") and normalized != "/jobs/api/plans/":
@@ -85,6 +86,14 @@ def normalize_path(path):
         path = "/" + path
     if not path.endswith("/"):
         path += "/"
+    return path
+
+
+def strip_deployment_prefix(path):
+    for marker in ("/hosts/", "/jobs/"):
+        marker_index = path.find(marker)
+        if marker_index > 0:
+            return path[marker_index:]
     return path
 
 

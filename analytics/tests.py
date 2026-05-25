@@ -62,3 +62,11 @@ class AnalyticsTests(TestCase):
         self.assertEqual(resolve_behavior("/hosts/api/hosts/1001"), ("CMDB", "host-detail"))
         self.assertEqual(resolve_behavior("/jobs/api/plans/3001/"), ("JOB", "plan-detail"))
         self.assertEqual(resolve_behavior("/jobs/api/records/8/refresh/"), ("JOB", "refresh-record"))
+        self.assertEqual(
+            resolve_behavior("/stag--bk-lab4/jobs/api/records/"),
+            ("JOB", "execution-record"),
+        )
+        self.assertEqual(
+            resolve_behavior("/stag--bk-lab4/hosts/api/hosts/1001/"),
+            ("CMDB", "host-detail"),
+        )

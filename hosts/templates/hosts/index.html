@@ -134,6 +134,20 @@
             box-shadow: 0 2px 8px rgba(37, 52, 82, 0.12);
         }
 
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 34px;
+            padding: 0 12px;
+            color: #245fc7;
+            background: #fff;
+            border: 1px solid #b8caf1;
+            border-radius: 6px;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
         .host-page {
             max-width: 1240px;
             margin: 0 auto;
@@ -445,6 +459,7 @@
             </div>
         </div>
         <div class="view-tools" aria-label="View tools">
+            <a class="nav-btn" href="{% url 'analytics:dashboard' %}">Back to Analytics</a>
             <div class="segmented" id="backgroundTools" aria-label="Background">
                 <button class="active" type="button" data-bg="feather">Feather sky</button>
                 <button type="button" data-bg="lighthouse">Lighthouse</button>

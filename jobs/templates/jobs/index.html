@@ -142,6 +142,20 @@
             box-shadow: 0 2px 8px rgba(37, 52, 82, 0.12);
         }
 
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 34px;
+            padding: 0 12px;
+            color: #245fc7;
+            background: #fff;
+            border: 1px solid #b9cae8;
+            border-radius: 6px;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: 360px minmax(0, 1fr);
@@ -461,6 +475,7 @@
             </div>
         </div>
         <div class="topbar-right">
+            <a class="nav-btn" href="{% url 'analytics:dashboard' %}">Back to Analytics</a>
             <div class="segmented" id="backgroundTools" aria-label="Background">
                 <button class="active" type="button" data-bg="lighthouse">Lighthouse</button>
                 <button type="button" data-bg="feather">Feather sky</button>
