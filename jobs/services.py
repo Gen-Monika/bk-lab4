@@ -26,6 +26,36 @@ STATUS_TEXT = {
     12: "queueing",
 }
 
+STATUS_ALIASES = {
+    "waiting": "waiting",
+    "pending": "waiting",
+    "running": "running",
+    "success": "success",
+    "succeeded": "success",
+    "failed": "failed",
+    "failure": "failed",
+    "error": "failed",
+    "terminated": "terminated",
+    "terminate": "terminated",
+    "stopping": "stopping",
+    "stopped": "terminated",
+    "cancelled": "terminated",
+    "canceled": "terminated",
+    "aborted": "failed",
+    "queueing": "queueing",
+    "queued": "queueing",
+    "not started": "not started",
+    "已终止": "terminated",
+    "终止": "terminated",
+    "停止中": "stopping",
+    "已停止": "terminated",
+    "排队中": "queueing",
+    "等待": "waiting",
+    "运行中": "running",
+    "成功": "success",
+    "失败": "failed",
+}
+
 
 class JobServiceError(Exception):
     pass
@@ -157,14 +187,44 @@ def parse_log_content(content):
 
 
 def status_text(status):
+    if isinstance(status, str):
+        text = status.strip()
+        if not text:
+            return "unknown"
+        lowered = text.lower()
+        if lowered in STATUS_ALIASES:
+            return STATUS_ALIASES[lowered]
+        if text in STATUS_ALIASES:
+            return STATUS_ALIASES[text]
+        try:
+            status = int(text)
+        except (TypeError, ValueError):
+            return text
     try:
         status = int(status)
     except (TypeError, ValueError):
         return "unknown"
-    return STATUS_TEXT.get(status, "unknown")
+    return STATUS_TEXT.get(status, "status-{}".format(status))
+
+
+def resolve_status_value(status_data, step=None):
+    for source in (step or {}, status_data or {}):
+        if not isinstance(source, dict):
+            continue
+        for key in (
+            "status",
+            "status_code",
+            "job_instance_status",
+            "status_name",
+            "status_text",
+            "display_status",
+        ):
+            value = source.get(key)
+            if value not in (None, ""):
+                return value
+    return None
 
 
 def build_job_url(job_instance_id):
     host = os.getenv("BKPAAS_JOB_URL") or "https://job.ce.bktencent.com"
     return "{}/?jobInstanceId={}".format(host.rstrip("/"), job_instance_id)
-

@@ -3,6 +3,8 @@ from unittest.mock import patch
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from jobs.models import JobExecutionRecord
+from jobs.services import status_text
 from jobs import views
 
 TEST_BUSINESSES = [
@@ -88,6 +90,21 @@ class FakeJobV3Api:
         }
 
 
+class TerminatedJobV3Api(FakeJobV3Api):
+    def get_job_instance_status(self, params):
+        return {
+            "result": True,
+            "data": {
+                "step_instance_list": [
+                    {
+                        "step_instance_id": 88002,
+                        "status": "terminated",
+                    }
+                ]
+            },
+        }
+
+
 class FakeBlueKingClient:
     def __init__(self):
         self.cc = FakeCmdbApi()
@@ -169,3 +186,34 @@ class JobConsoleTests(TestCase):
         response = self.client.get(reverse("jobs:records"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["data"][0]["status_text"], "success")
+
+    def test_refresh_record_handles_terminated_status(self):
+        record = JobExecutionRecord.objects.create(
+            action=JobExecutionRecord.ACTION_SEARCH,
+            bk_biz_id=2,
+            bk_host_ids="1001",
+            job_plan_id=3001,
+            job_instance_id=99002,
+            job_instance_name="Search game logs",
+            status=2,
+            status_text="waiting",
+        )
+
+        with patch(
+            "jobs.services.get_client_by_request",
+            return_value=type(
+                "TerminatedClient",
+                (),
+                {"cc": FakeCmdbApi(), "jobv3": TerminatedJobV3Api()},
+            )(),
+        ):
+            response = self.client.post(
+                reverse("jobs:refresh_record", args=[record.id]),
+                data="{}",
+                content_type="application/json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["data"]["record"]
+        self.assertEqual(payload["status_text"], "terminated")
+        self.assertEqual(status_text("terminated"), "terminated")

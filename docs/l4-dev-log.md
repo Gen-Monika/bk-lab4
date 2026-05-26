@@ -24,3 +24,8 @@ Started the fourth BlueKing SaaS course project from the finished JOB console. T
 
 - `python manage.py check`
 - `python manage.py test analytics jobs`
+
+## Maintenance Update
+
+- Synced the JOB execution status parser from L3 so terminated and platform-specific status values no longer render as `unknown` in inherited Execution Records.
+- Added regression coverage for refreshing a terminated JOB execution record.

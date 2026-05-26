@@ -8,7 +8,13 @@ from django.views.decorators.http import require_GET, require_POST
 from hosts.cmdb import CmdbService, CmdbServiceError
 
 from .models import JobExecutionRecord
-from .services import JobService, JobServiceError, build_job_url, status_text
+from .services import (
+    JobService,
+    JobServiceError,
+    build_job_url,
+    resolve_status_value,
+    status_text,
+)
 
 
 @ensure_csrf_cookie
@@ -162,10 +168,15 @@ def refresh_record(request, record_id):
         service = JobService(request)
         status_data = service.get_instance_status(record.bk_biz_id, record.job_instance_id)
         step = service.first_step(status_data)
+        status_value = resolve_status_value(status_data, step)
         if step:
             record.step_instance_id = step.get("step_instance_id") or record.step_instance_id
-            record.status = int(step.get("status", 0) or 0)
-            record.status_text = status_text(record.status)
+        if status_value not in (None, ""):
+            try:
+                record.status = int(status_value)
+            except (TypeError, ValueError):
+                record.status = 0
+            record.status_text = status_text(status_value)
         record.save()
         return _ok({"record": record.to_dict(), "status": status_data})
     except JobServiceError as err:
@@ -203,6 +214,7 @@ def _execute_and_collect(
             host_ids=host_ids,
             execute_data=execute_data,
             variables=variables,
+            status_data=status_data,
             step=step,
             search_path=search_path,
             suffix=suffix,
@@ -221,6 +233,7 @@ def _create_record(
     host_ids,
     execute_data,
     variables,
+    status_data=None,
     step=None,
     search_path="",
     suffix="",
@@ -229,7 +242,13 @@ def _create_record(
 ):
     job_instance_id = execute_data.get("job_instance_id", 0)
     job_instance_name = execute_data.get("job_instance_name", "")
-    status = int(step.get("status", 2) if step else 2)
+    status_value = resolve_status_value(status_data, step)
+    if status_value in (None, ""):
+        status_value = 2
+    try:
+        status = int(status_value)
+    except (TypeError, ValueError):
+        status = 0
     step_instance_id = step.get("step_instance_id", 0) if step else 0
     return JobExecutionRecord.objects.create(
         action=action,
@@ -240,7 +259,7 @@ def _create_record(
         job_instance_name=job_instance_name,
         step_instance_id=step_instance_id or 0,
         status=status,
-        status_text=status_text(status),
+        status_text=status_text(status_value),
         search_path=search_path or variables.get("search_path", ""),
         suffix=suffix or variables.get("suffix", ""),
         backup_path=backup_path or variables.get("backup_path", ""),
@@ -340,4 +359,3 @@ def _job_response(loader):
         return _ok(loader())
     except JobServiceError as err:
         return _service_error(str(err))
-
