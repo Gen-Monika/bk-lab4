@@ -33,3 +33,4 @@ Started the fourth BlueKing SaaS course project from the finished JOB console. T
 - Added structured JOB script templates under `docs/job_scripts/`; scripts emit `BK_JOB_RESULT={...}` for BKVision-related JOB operations that need file count and size data.
 - Added a unified structured JOB script that supports both search and backup by detecting whether `backup_path` is provided, matching single-script JOB plans.
 - Synced the File Results history fix from L3 so more than three search or backup results remain visible after page refresh.
+- Added local archive and restore controls to the analytics homepage tables so API rows and recent events can be hidden without changing collected data.

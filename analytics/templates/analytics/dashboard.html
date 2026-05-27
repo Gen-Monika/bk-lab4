@@ -157,6 +157,29 @@
             font-size: 16px;
         }
 
+        .section-header,
+        .archive-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .section-header {
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .section-header h2 {
+            margin: 0;
+        }
+
+        .archive-actions .btn {
+            height: 30px;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+
         .metric {
             color: var(--accent);
             font-size: 32px;
@@ -188,6 +211,19 @@
             background: #f7f9fd;
             font-size: 12px;
             font-weight: 700;
+        }
+
+        tr.archived-row td {
+            background: #fff8e6;
+        }
+
+        .link-button {
+            padding: 0;
+            color: #245fc7;
+            background: none;
+            border: 0;
+            font: inherit;
+            cursor: pointer;
         }
 
         .wide {
@@ -345,7 +381,13 @@
         </section>
 
         <section class="panel wide">
-            <h2>Local Behavior Data</h2>
+            <div class="section-header">
+                <h2>Local Behavior Data</h2>
+                <div class="archive-actions">
+                    <button class="btn" type="button" id="toggleArchivedCounts">Show Archived (0)</button>
+                    <button class="btn" type="button" id="restoreCounts" disabled>Restore All</button>
+                </div>
+            </div>
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -355,6 +397,7 @@
                             <th>Count</th>
                             <th>Last user</th>
                             <th>Last path</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="countTableBody"></tbody>
@@ -363,7 +406,13 @@
         </section>
 
         <section class="panel wide">
-            <h2>Recent Events</h2>
+            <div class="section-header">
+                <h2>Recent Events</h2>
+                <div class="archive-actions">
+                    <button class="btn" type="button" id="toggleArchivedEvents">Show Archived (0)</button>
+                    <button class="btn" type="button" id="restoreEvents" disabled>Restore All</button>
+                </div>
+            </div>
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -374,6 +423,7 @@
                             <th>API</th>
                             <th>Status</th>
                             <th>Duration</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="eventTableBody"></tbody>
@@ -429,6 +479,29 @@ const visualAssets = {
     },
 };
 
+const displayState = {
+    counts: [],
+    events: [],
+    showArchivedCounts: false,
+    showArchivedEvents: false,
+};
+const archiveStoragePrefix = `bkvisionDashboard:${window.location.pathname.split("/").filter(Boolean)[0] || "local"}`;
+const archivedCountKeys = loadStoredSet(`${archiveStoragePrefix}:archivedCounts`);
+const archivedEventKeys = loadStoredSet(`${archiveStoragePrefix}:archivedEvents`);
+
+function loadStoredSet(key) {
+    try {
+        const value = JSON.parse(window.localStorage.getItem(key) || "[]");
+        return new Set(Array.isArray(value) ? value : []);
+    } catch (error) {
+        return new Set();
+    }
+}
+
+function saveStoredSet(key, set) {
+    window.localStorage.setItem(key, JSON.stringify(Array.from(set)));
+}
+
 async function requestJson(url) {
     const response = await fetch(url, { credentials: "same-origin" });
     const payload = await response.json();
@@ -456,34 +529,70 @@ function renderMetrics(data) {
 }
 
 function renderCounts(rows) {
+    if (Array.isArray(rows)) {
+        displayState.counts = rows.map((row) => ({
+            ...row,
+            archive_key: row.archive_key || countArchiveKey(row),
+        }));
+    }
     const tbody = document.getElementById("countTableBody");
     tbody.innerHTML = "";
-    if (!rows.length) {
-        tbody.innerHTML = '<tr><td class="empty" colspan="5">No behavior data yet</td></tr>';
+    if (!displayState.counts.length) {
+        tbody.innerHTML = '<tr><td class="empty" colspan="6">No behavior data yet</td></tr>';
+        updateArchiveControls();
         return;
     }
-    rows.forEach((row) => {
+    const visibleRows = displayState.counts.filter((row) => (
+        displayState.showArchivedCounts || !archivedCountKeys.has(row.archive_key)
+    ));
+    if (!visibleRows.length) {
+        tbody.innerHTML = '<tr><td class="empty" colspan="6">All API rows are archived</td></tr>';
+        updateArchiveControls();
+        return;
+    }
+    visibleRows.forEach((row) => {
         const tr = document.createElement("tr");
+        const archived = archivedCountKeys.has(row.archive_key);
+        tr.className = archived ? "archived-row" : "";
         tr.innerHTML = `
             <td>${escapeHtml(row.api_category)}</td>
             <td>${escapeHtml(row.api_name)}</td>
             <td>${escapeHtml(row.request_count)}</td>
             <td>${escapeHtml(row.last_username)}</td>
             <td>${escapeHtml(row.last_path)}</td>
+            <td><button class="link-button" type="button" data-count-archive="${escapeHtml(row.archive_key)}">${archived ? "Restore" : "Archive"}</button></td>
         `;
         tbody.appendChild(tr);
     });
+    updateArchiveControls();
 }
 
 function renderEvents(rows) {
+    if (Array.isArray(rows)) {
+        displayState.events = rows.map((row) => ({
+            ...row,
+            archive_key: row.archive_key || eventArchiveKey(row),
+        }));
+    }
     const tbody = document.getElementById("eventTableBody");
     tbody.innerHTML = "";
-    if (!rows.length) {
-        tbody.innerHTML = '<tr><td class="empty" colspan="6">No events recorded yet</td></tr>';
+    if (!displayState.events.length) {
+        tbody.innerHTML = '<tr><td class="empty" colspan="7">No events recorded yet</td></tr>';
+        updateArchiveControls();
         return;
     }
-    rows.forEach((row) => {
+    const visibleRows = displayState.events.filter((row) => (
+        displayState.showArchivedEvents || !archivedEventKeys.has(row.archive_key)
+    ));
+    if (!visibleRows.length) {
+        tbody.innerHTML = '<tr><td class="empty" colspan="7">All events are archived</td></tr>';
+        updateArchiveControls();
+        return;
+    }
+    visibleRows.forEach((row) => {
         const tr = document.createElement("tr");
+        const archived = archivedEventKeys.has(row.archive_key);
+        tr.className = archived ? "archived-row" : "";
         tr.innerHTML = `
             <td>${escapeHtml(row.created_at)}</td>
             <td>${escapeHtml(row.username)}</td>
@@ -491,9 +600,60 @@ function renderEvents(rows) {
             <td>${escapeHtml(row.api_name)}</td>
             <td>${escapeHtml(row.status_code)}</td>
             <td>${escapeHtml(row.duration_ms)} ms</td>
+            <td><button class="link-button" type="button" data-event-archive="${escapeHtml(row.archive_key)}">${archived ? "Restore" : "Archive"}</button></td>
         `;
         tbody.appendChild(tr);
     });
+    updateArchiveControls();
+}
+
+function countArchiveKey(row) {
+    return encodeURIComponent(JSON.stringify([row.api_category || "", row.api_name || ""]));
+}
+
+function eventArchiveKey(row) {
+    if (row.id !== undefined && row.id !== null) {
+        return String(row.id);
+    }
+    return encodeURIComponent(JSON.stringify([
+        row.created_at || "",
+        row.username || "",
+        row.api_category || "",
+        row.api_name || "",
+        row.status_code ?? "",
+        row.duration_ms ?? "",
+    ]));
+}
+
+function updateArchiveControls() {
+    const countToggle = document.getElementById("toggleArchivedCounts");
+    const countRestore = document.getElementById("restoreCounts");
+    const eventToggle = document.getElementById("toggleArchivedEvents");
+    const eventRestore = document.getElementById("restoreEvents");
+    countToggle.textContent = `${displayState.showArchivedCounts ? "Hide" : "Show"} Archived (${archivedCountKeys.size})`;
+    eventToggle.textContent = `${displayState.showArchivedEvents ? "Hide" : "Show"} Archived (${archivedEventKeys.size})`;
+    countRestore.disabled = archivedCountKeys.size === 0;
+    eventRestore.disabled = archivedEventKeys.size === 0;
+}
+
+function toggleCountArchive(key) {
+    if (archivedCountKeys.has(key)) {
+        archivedCountKeys.delete(key);
+    } else {
+        archivedCountKeys.add(key);
+    }
+    saveStoredSet(`${archiveStoragePrefix}:archivedCounts`, archivedCountKeys);
+    renderCounts();
+}
+
+function toggleEventArchive(key) {
+    if (archivedEventKeys.has(key)) {
+        archivedEventKeys.delete(key);
+    } else {
+        archivedEventKeys.add(key);
+    }
+    saveStoredSet(`${archiveStoragePrefix}:archivedEvents`, archivedEventKeys);
+    renderEvents();
 }
 
 function escapeHtml(value) {
@@ -642,6 +802,36 @@ function initPet() {
 }
 
 document.getElementById("refreshBtn").addEventListener("click", loadSummary);
+document.getElementById("toggleArchivedCounts").addEventListener("click", () => {
+    displayState.showArchivedCounts = !displayState.showArchivedCounts;
+    renderCounts();
+});
+document.getElementById("restoreCounts").addEventListener("click", () => {
+    archivedCountKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedCounts`, archivedCountKeys);
+    renderCounts();
+});
+document.getElementById("toggleArchivedEvents").addEventListener("click", () => {
+    displayState.showArchivedEvents = !displayState.showArchivedEvents;
+    renderEvents();
+});
+document.getElementById("restoreEvents").addEventListener("click", () => {
+    archivedEventKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedEvents`, archivedEventKeys);
+    renderEvents();
+});
+document.getElementById("countTableBody").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-count-archive]");
+    if (button) {
+        toggleCountArchive(button.dataset.countArchive);
+    }
+});
+document.getElementById("eventTableBody").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-event-archive]");
+    if (button) {
+        toggleEventArchive(button.dataset.eventArchive);
+    }
+});
 initBackgroundTools();
 initPet();
 loadSummary();

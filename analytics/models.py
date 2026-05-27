@@ -46,6 +46,7 @@ class UserBehaviorEvent(models.Model):
 
     def to_dict(self):
         return {
+            "id": self.id,
             "username": self.username,
             "api_category": self.api_category,
             "api_name": self.api_name,
@@ -55,4 +56,3 @@ class UserBehaviorEvent(models.Model):
             "duration_ms": self.duration_ms,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
-

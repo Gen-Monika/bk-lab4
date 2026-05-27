@@ -16,6 +16,10 @@ class AnalyticsTests(TestCase):
         self.assertContains(response, "BKVision Behavior Dashboard")
         self.assertContains(response, "BKVISION_DASHBOARD_URL")
         self.assertContains(response, "petDock")
+        self.assertContains(response, "toggleArchivedCounts")
+        self.assertContains(response, "toggleArchivedEvents")
+        self.assertContains(response, "data-count-archive")
+        self.assertContains(response, "data-event-archive")
 
     def test_summary_returns_counts_and_events(self):
         ApiRequestCount.objects.create(
@@ -40,6 +44,7 @@ class AnalyticsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()["data"]
         self.assertEqual(payload["counts"][0]["api_name"], "backup-file")
+        self.assertEqual(payload["events"][0]["id"], UserBehaviorEvent.objects.get().id)
         self.assertEqual(payload["events"][0]["username"], "alice")
         self.assertEqual(payload["user_backup_counts"], [{"username": "alice", "count": 1}])
 
