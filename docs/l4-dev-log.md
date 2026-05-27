@@ -31,3 +31,4 @@ Started the fourth BlueKing SaaS course project from the finished JOB console. T
 - Added regression coverage for refreshing a terminated JOB execution record.
 - Synced active JOB auto-refresh, result backfill, archive controls, and archived-item visual separation from L3 so the inherited JOB console remains consistent.
 - Added structured JOB script templates under `docs/job_scripts/`; scripts emit `BK_JOB_RESULT={...}` for BKVision-related JOB operations that need file count and size data.
+- Added a unified structured JOB script that supports both search and backup by detecting whether `backup_path` is provided, matching single-script JOB plans.
