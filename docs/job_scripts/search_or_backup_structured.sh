@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SEARCH_PATH="${search_path:-/project}"
-SUFFIX="${suffix:-log}"
-BACKUP_PATH="${backup_path:-}"
+SEARCH_PATH="${search_path:-${1:-/project}}"
+SUFFIX="${suffix:-${2:-log}}"
+BACKUP_PATH="${backup_path:-${3:-}}"
 TMP_FILE="$(mktemp)"
 
 cleanup() {
@@ -14,6 +14,23 @@ trap cleanup EXIT
 json_escape() {
     sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' '
 }
+
+normalize_placeholder() {
+    case "$1" in
+        ""|\$\{search_path\}|\$\{suffix\}|\$\{backup_path\}|\{\{search_path\}\}|\{\{suffix\}\}|\{\{backup_path\}\})
+            printf ''
+            ;;
+        *)
+            printf '%s' "$1"
+            ;;
+    esac
+}
+
+SEARCH_PATH="$(normalize_placeholder "$SEARCH_PATH")"
+SUFFIX="$(normalize_placeholder "$SUFFIX")"
+BACKUP_PATH="$(normalize_placeholder "$BACKUP_PATH")"
+SEARCH_PATH="${SEARCH_PATH:-/project}"
+SUFFIX="${SUFFIX:-log}"
 
 if [ -d "$SEARCH_PATH" ]; then
     find "$SEARCH_PATH" -type f -name "*.${SUFFIX}" -print > "$TMP_FILE"
