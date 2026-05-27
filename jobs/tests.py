@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import patch
 
 from django.test import Client, TestCase
@@ -260,3 +261,12 @@ class JobConsoleTests(TestCase):
         self.assertEqual(status_text("terminated"), "terminated")
         self.assertEqual(status_text(13), "terminated")
         self.assertEqual(status_text("13"), "terminated")
+
+
+class JobConsoleTemplateTests(TestCase):
+    def test_file_results_are_not_limited_to_three_records(self):
+        template = Path(__file__).resolve().parent / "templates" / "jobs" / "index.html"
+        source = template.read_text(encoding="utf-8")
+        self.assertIn("function renderStoredFileResults()", source)
+        self.assertNotIn(".slice(0, 3)", source)
+        self.assertIn("max-height: 460px", source)

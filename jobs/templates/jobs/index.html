@@ -371,6 +371,9 @@
         .results {
             display: grid;
             gap: 10px;
+            max-height: 460px;
+            overflow-y: auto;
+            padding-right: 2px;
         }
 
         .result-card {
@@ -1030,7 +1033,6 @@ function renderStoredFileResults() {
     const rows = state.records
         .filter((record) => ["search", "backup"].includes(record.action))
         .filter((record) => record.result_summary || record.error_message)
-        .slice(0, 3)
         .map((record) => ({
             record_id: record.id,
             action: record.action,
