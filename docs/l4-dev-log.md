@@ -29,3 +29,5 @@ Started the fourth BlueKing SaaS course project from the finished JOB console. T
 
 - Synced the JOB execution status parser from L3 so terminated and platform-specific status values no longer render as `unknown` in inherited Execution Records.
 - Added regression coverage for refreshing a terminated JOB execution record.
+- Synced active JOB auto-refresh, result backfill, archive controls, and archived-item visual separation from L3 so the inherited JOB console remains consistent.
+- Added structured JOB script templates under `docs/job_scripts/`; scripts emit `BK_JOB_RESULT={...}` for BKVision-related JOB operations that need file count and size data.

@@ -319,6 +319,10 @@
             background: #fff;
         }
 
+        tr.archived-record td {
+            background: #fff8e6;
+        }
+
         th,
         td {
             padding: 10px 9px;
@@ -374,6 +378,11 @@
             background: #f8fbff;
             border: 1px solid #e1e8f2;
             border-radius: 6px;
+        }
+
+        .result-card.archived {
+            background: #fff8e6;
+            border-color: #f3d18c;
         }
 
         .result-card-header,
@@ -993,8 +1002,8 @@ function renderFileResults(rows) {
     }
     visibleRows.forEach((row) => {
         const card = document.createElement("div");
-        card.className = "result-card";
         const archived = archivedFileResultKeys.has(row.archive_key);
+        card.className = archived ? "result-card archived" : "result-card";
         const fileText = row.bk_file_list || row.log_content || row.message || "";
         const fileLabel = row.message && !row.bk_file_list && !row.log_content ? "Summary" : "Files";
         const countLine = row.bk_file_cnt !== "" && row.bk_file_cnt !== null && row.bk_file_cnt !== undefined
@@ -1152,6 +1161,7 @@ function renderRecords() {
         const row = document.createElement("tr");
         const statusTone = getStatusTone(record);
         const archived = archivedRecordIds.has(String(record.id));
+        row.className = archived ? "archived-record" : "";
         row.innerHTML = `
             <td>${escapeHtml(record.created_at)}</td>
             <td>${escapeHtml(record.action)}</td>

@@ -4,7 +4,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from jobs.models import JobExecutionRecord
-from jobs.services import status_text
+from jobs.services import parse_log_content, status_text
 from jobs import views
 
 TEST_BUSINESSES = [
@@ -164,6 +164,20 @@ class JobConsoleTests(TestCase):
         response = self.client.get(reverse("jobs:plan_detail", args=[3001]), {"bk_biz_id": 2})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["data"]["name"], "Search game logs")
+
+    def test_parse_structured_job_output(self):
+        content = (
+            "scan started\n"
+            'BK_JOB_RESULT={"bk_file_list": "game.log,error.log", '
+            '"bk_file_cnt": 2, "bk_file_total_size": 4096}\n'
+            "scan completed"
+        )
+
+        parsed = parse_log_content(content)
+
+        self.assertEqual(parsed["bk_file_list"], "game.log,error.log")
+        self.assertEqual(parsed["bk_file_cnt"], 2)
+        self.assertEqual(parsed["bk_file_total_size"], 4096)
 
     def test_search_files_creates_record(self):
         response = self.client.post(

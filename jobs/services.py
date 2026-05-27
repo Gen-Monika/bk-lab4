@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 MAX_STATUS_ATTEMPTS = int(os.getenv("JOB_STATUS_ATTEMPTS", "10"))
 STATUS_ATTEMPT_INTERVAL = float(os.getenv("JOB_STATUS_INTERVAL", "0.3"))
+STRUCTURED_LOG_PREFIX = "BK_JOB_RESULT="
 WAITING_STATUSES = {1, 2, 4, 7, 8, 9, 10, 11, 12}
 SUCCESS_STATUS = 3
 STATUS_TEXT = {
@@ -181,10 +182,36 @@ def parse_log_content(content):
     text = str(content).strip()
     if not text:
         return ""
+    parsed, ok = _parse_json(text)
+    if ok:
+        return parsed
+    for line in reversed(text.splitlines()):
+        for candidate in _json_candidates(line.strip()):
+            parsed, ok = _parse_json(candidate)
+            if ok:
+                return parsed
+    return text
+
+
+def _json_candidates(line):
+    if not line:
+        return []
+    if STRUCTURED_LOG_PREFIX in line:
+        return [line.split(STRUCTURED_LOG_PREFIX, 1)[1].strip()]
+    if line.startswith("{") and line.endswith("}"):
+        return [line]
+    start = line.find("{")
+    end = line.rfind("}")
+    if start != -1 and end > start:
+        return [line[start : end + 1]]
+    return []
+
+
+def _parse_json(text):
     try:
-        return json.loads(text)
+        return json.loads(text), True
     except ValueError:
-        return text
+        return None, False
 
 
 def status_text(status):
