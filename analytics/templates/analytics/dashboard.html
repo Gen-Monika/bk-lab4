@@ -141,6 +141,11 @@
             white-space: nowrap;
         }
 
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -178,6 +183,11 @@
             height: 30px;
             padding: 0 10px;
             font-size: 12px;
+        }
+
+        .select-cell {
+            width: 34px;
+            text-align: center;
         }
 
         .metric {
@@ -385,6 +395,10 @@
                 <h2>Local Behavior Data</h2>
                 <div class="archive-actions">
                     <button class="btn" type="button" id="toggleArchivedCounts">Show Archived (0)</button>
+                    <button class="btn" type="button" id="selectCounts">Select</button>
+                    <button class="btn" type="button" id="archiveSelectedCounts" disabled>Archive Selected</button>
+                    <button class="btn" type="button" id="restoreSelectedCounts" disabled>Restore Selected</button>
+                    <button class="btn" type="button" id="archiveCounts" disabled>Archive All</button>
                     <button class="btn" type="button" id="restoreCounts" disabled>Restore All</button>
                 </div>
             </div>
@@ -392,6 +406,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th class="select-cell count-selection-column">Select</th>
                             <th>Category</th>
                             <th>API</th>
                             <th>Count</th>
@@ -410,6 +425,10 @@
                 <h2>Recent Events</h2>
                 <div class="archive-actions">
                     <button class="btn" type="button" id="toggleArchivedEvents">Show Archived (0)</button>
+                    <button class="btn" type="button" id="selectEvents">Select</button>
+                    <button class="btn" type="button" id="archiveSelectedEvents" disabled>Archive Selected</button>
+                    <button class="btn" type="button" id="restoreSelectedEvents" disabled>Restore Selected</button>
+                    <button class="btn" type="button" id="archiveEvents" disabled>Archive All</button>
                     <button class="btn" type="button" id="restoreEvents" disabled>Restore All</button>
                 </div>
             </div>
@@ -417,6 +436,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th class="select-cell event-selection-column">Select</th>
                             <th>Time</th>
                             <th>User</th>
                             <th>Category</th>
@@ -484,10 +504,14 @@ const displayState = {
     events: [],
     showArchivedCounts: false,
     showArchivedEvents: false,
+    countSelectionMode: false,
+    eventSelectionMode: false,
 };
 const archiveStoragePrefix = `bkvisionDashboard:${window.location.pathname.split("/").filter(Boolean)[0] || "local"}`;
 const archivedCountKeys = loadStoredSet(`${archiveStoragePrefix}:archivedCounts`);
 const archivedEventKeys = loadStoredSet(`${archiveStoragePrefix}:archivedEvents`);
+const selectedCountKeys = new Set();
+const selectedEventKeys = new Set();
 
 function loadStoredSet(key) {
     try {
@@ -538,7 +562,7 @@ function renderCounts(rows) {
     const tbody = document.getElementById("countTableBody");
     tbody.innerHTML = "";
     if (!displayState.counts.length) {
-        tbody.innerHTML = '<tr><td class="empty" colspan="6">No behavior data yet</td></tr>';
+        tbody.innerHTML = '<tr><td class="empty" colspan="7">No behavior data yet</td></tr>';
         updateArchiveControls();
         return;
     }
@@ -546,21 +570,23 @@ function renderCounts(rows) {
         displayState.showArchivedCounts || !archivedCountKeys.has(row.archive_key)
     ));
     if (!visibleRows.length) {
-        tbody.innerHTML = '<tr><td class="empty" colspan="6">All API rows are archived</td></tr>';
+        tbody.innerHTML = '<tr><td class="empty" colspan="7">All API rows are archived</td></tr>';
         updateArchiveControls();
         return;
     }
     visibleRows.forEach((row) => {
         const tr = document.createElement("tr");
         const archived = archivedCountKeys.has(row.archive_key);
+        const selected = selectedCountKeys.has(row.archive_key);
         tr.className = archived ? "archived-row" : "";
         tr.innerHTML = `
+            <td class="select-cell count-selection-column"><input type="checkbox" data-count-select="${escapeHtml(row.archive_key)}" ${selected ? "checked" : ""}></td>
             <td>${escapeHtml(row.api_category)}</td>
             <td>${escapeHtml(row.api_name)}</td>
             <td>${escapeHtml(row.request_count)}</td>
             <td>${escapeHtml(row.last_username)}</td>
             <td>${escapeHtml(row.last_path)}</td>
-            <td><button class="link-button" type="button" data-count-archive="${escapeHtml(row.archive_key)}">${archived ? "Restore" : "Archive"}</button></td>
+            <td>${displayState.countSelectionMode ? "" : `<button class="link-button" type="button" data-count-archive="${escapeHtml(row.archive_key)}">${archived ? "Restore" : "Archive"}</button>`}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -577,7 +603,7 @@ function renderEvents(rows) {
     const tbody = document.getElementById("eventTableBody");
     tbody.innerHTML = "";
     if (!displayState.events.length) {
-        tbody.innerHTML = '<tr><td class="empty" colspan="7">No events recorded yet</td></tr>';
+        tbody.innerHTML = '<tr><td class="empty" colspan="8">No events recorded yet</td></tr>';
         updateArchiveControls();
         return;
     }
@@ -585,22 +611,24 @@ function renderEvents(rows) {
         displayState.showArchivedEvents || !archivedEventKeys.has(row.archive_key)
     ));
     if (!visibleRows.length) {
-        tbody.innerHTML = '<tr><td class="empty" colspan="7">All events are archived</td></tr>';
+        tbody.innerHTML = '<tr><td class="empty" colspan="8">All events are archived</td></tr>';
         updateArchiveControls();
         return;
     }
     visibleRows.forEach((row) => {
         const tr = document.createElement("tr");
         const archived = archivedEventKeys.has(row.archive_key);
+        const selected = selectedEventKeys.has(row.archive_key);
         tr.className = archived ? "archived-row" : "";
         tr.innerHTML = `
+            <td class="select-cell event-selection-column"><input type="checkbox" data-event-select="${escapeHtml(row.archive_key)}" ${selected ? "checked" : ""}></td>
             <td>${escapeHtml(row.created_at)}</td>
             <td>${escapeHtml(row.username)}</td>
             <td>${escapeHtml(row.api_category)}</td>
             <td>${escapeHtml(row.api_name)}</td>
             <td>${escapeHtml(row.status_code)}</td>
             <td>${escapeHtml(row.duration_ms)} ms</td>
-            <td><button class="link-button" type="button" data-event-archive="${escapeHtml(row.archive_key)}">${archived ? "Restore" : "Archive"}</button></td>
+            <td>${displayState.eventSelectionMode ? "" : `<button class="link-button" type="button" data-event-archive="${escapeHtml(row.archive_key)}">${archived ? "Restore" : "Archive"}</button>`}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -627,12 +655,44 @@ function eventArchiveKey(row) {
 
 function updateArchiveControls() {
     const countToggle = document.getElementById("toggleArchivedCounts");
+    const countSelect = document.getElementById("selectCounts");
+    const countArchiveSelected = document.getElementById("archiveSelectedCounts");
+    const countRestoreSelected = document.getElementById("restoreSelectedCounts");
+    const countArchive = document.getElementById("archiveCounts");
     const countRestore = document.getElementById("restoreCounts");
     const eventToggle = document.getElementById("toggleArchivedEvents");
+    const eventSelect = document.getElementById("selectEvents");
+    const eventArchiveSelected = document.getElementById("archiveSelectedEvents");
+    const eventRestoreSelected = document.getElementById("restoreSelectedEvents");
+    const eventArchive = document.getElementById("archiveEvents");
     const eventRestore = document.getElementById("restoreEvents");
+    const selectedCounts = displayState.counts.filter((row) => selectedCountKeys.has(row.archive_key));
+    const selectedEvents = displayState.events.filter((row) => selectedEventKeys.has(row.archive_key));
     countToggle.textContent = `${displayState.showArchivedCounts ? "Hide" : "Show"} Archived (${archivedCountKeys.size})`;
+    countSelect.textContent = displayState.countSelectionMode ? "Done" : "Select";
+    countArchiveSelected.style.display = displayState.countSelectionMode ? "" : "none";
+    countRestoreSelected.style.display = displayState.countSelectionMode ? "" : "none";
+    countArchive.style.display = displayState.countSelectionMode ? "none" : "";
+    countRestore.style.display = displayState.countSelectionMode ? "none" : "";
     eventToggle.textContent = `${displayState.showArchivedEvents ? "Hide" : "Show"} Archived (${archivedEventKeys.size})`;
+    eventSelect.textContent = displayState.eventSelectionMode ? "Done" : "Select";
+    eventArchiveSelected.style.display = displayState.eventSelectionMode ? "" : "none";
+    eventRestoreSelected.style.display = displayState.eventSelectionMode ? "" : "none";
+    eventArchive.style.display = displayState.eventSelectionMode ? "none" : "";
+    eventRestore.style.display = displayState.eventSelectionMode ? "none" : "";
+    document.querySelectorAll(".count-selection-column").forEach((cell) => {
+        cell.style.display = displayState.countSelectionMode ? "" : "none";
+    });
+    document.querySelectorAll(".event-selection-column").forEach((cell) => {
+        cell.style.display = displayState.eventSelectionMode ? "" : "none";
+    });
+    countArchiveSelected.disabled = !selectedCounts.some((row) => !archivedCountKeys.has(row.archive_key));
+    countRestoreSelected.disabled = !selectedCounts.some((row) => archivedCountKeys.has(row.archive_key));
+    countArchive.disabled = !displayState.counts.some((row) => !archivedCountKeys.has(row.archive_key));
     countRestore.disabled = archivedCountKeys.size === 0;
+    eventArchiveSelected.disabled = !selectedEvents.some((row) => !archivedEventKeys.has(row.archive_key));
+    eventRestoreSelected.disabled = !selectedEvents.some((row) => archivedEventKeys.has(row.archive_key));
+    eventArchive.disabled = !displayState.events.some((row) => !archivedEventKeys.has(row.archive_key));
     eventRestore.disabled = archivedEventKeys.size === 0;
 }
 
@@ -646,12 +706,54 @@ function toggleCountArchive(key) {
     renderCounts();
 }
 
+function archiveAllCounts() {
+    displayState.counts.forEach((row) => archivedCountKeys.add(row.archive_key));
+    selectedCountKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedCounts`, archivedCountKeys);
+    renderCounts();
+}
+
+function archiveSelectedCounts() {
+    selectedCountKeys.forEach((key) => archivedCountKeys.add(key));
+    selectedCountKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedCounts`, archivedCountKeys);
+    renderCounts();
+}
+
+function restoreSelectedCounts() {
+    selectedCountKeys.forEach((key) => archivedCountKeys.delete(key));
+    selectedCountKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedCounts`, archivedCountKeys);
+    renderCounts();
+}
+
 function toggleEventArchive(key) {
     if (archivedEventKeys.has(key)) {
         archivedEventKeys.delete(key);
     } else {
         archivedEventKeys.add(key);
     }
+    saveStoredSet(`${archiveStoragePrefix}:archivedEvents`, archivedEventKeys);
+    renderEvents();
+}
+
+function archiveAllEvents() {
+    displayState.events.forEach((row) => archivedEventKeys.add(row.archive_key));
+    selectedEventKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedEvents`, archivedEventKeys);
+    renderEvents();
+}
+
+function archiveSelectedEvents() {
+    selectedEventKeys.forEach((key) => archivedEventKeys.add(key));
+    selectedEventKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedEvents`, archivedEventKeys);
+    renderEvents();
+}
+
+function restoreSelectedEvents() {
+    selectedEventKeys.forEach((key) => archivedEventKeys.delete(key));
+    selectedEventKeys.clear();
     saveStoredSet(`${archiveStoragePrefix}:archivedEvents`, archivedEventKeys);
     renderEvents();
 }
@@ -806,8 +908,19 @@ document.getElementById("toggleArchivedCounts").addEventListener("click", () => 
     displayState.showArchivedCounts = !displayState.showArchivedCounts;
     renderCounts();
 });
+document.getElementById("selectCounts").addEventListener("click", () => {
+    displayState.countSelectionMode = !displayState.countSelectionMode;
+    if (!displayState.countSelectionMode) {
+        selectedCountKeys.clear();
+    }
+    renderCounts();
+});
+document.getElementById("archiveSelectedCounts").addEventListener("click", archiveSelectedCounts);
+document.getElementById("restoreSelectedCounts").addEventListener("click", restoreSelectedCounts);
+document.getElementById("archiveCounts").addEventListener("click", archiveAllCounts);
 document.getElementById("restoreCounts").addEventListener("click", () => {
     archivedCountKeys.clear();
+    selectedCountKeys.clear();
     saveStoredSet(`${archiveStoragePrefix}:archivedCounts`, archivedCountKeys);
     renderCounts();
 });
@@ -815,16 +928,51 @@ document.getElementById("toggleArchivedEvents").addEventListener("click", () => 
     displayState.showArchivedEvents = !displayState.showArchivedEvents;
     renderEvents();
 });
+document.getElementById("selectEvents").addEventListener("click", () => {
+    displayState.eventSelectionMode = !displayState.eventSelectionMode;
+    if (!displayState.eventSelectionMode) {
+        selectedEventKeys.clear();
+    }
+    renderEvents();
+});
+document.getElementById("archiveSelectedEvents").addEventListener("click", archiveSelectedEvents);
+document.getElementById("restoreSelectedEvents").addEventListener("click", restoreSelectedEvents);
+document.getElementById("archiveEvents").addEventListener("click", archiveAllEvents);
 document.getElementById("restoreEvents").addEventListener("click", () => {
     archivedEventKeys.clear();
+    selectedEventKeys.clear();
     saveStoredSet(`${archiveStoragePrefix}:archivedEvents`, archivedEventKeys);
     renderEvents();
+});
+document.getElementById("countTableBody").addEventListener("change", (event) => {
+    const input = event.target.closest("input[data-count-select]");
+    if (!input) {
+        return;
+    }
+    if (input.checked) {
+        selectedCountKeys.add(input.dataset.countSelect);
+    } else {
+        selectedCountKeys.delete(input.dataset.countSelect);
+    }
+    updateArchiveControls();
 });
 document.getElementById("countTableBody").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-count-archive]");
     if (button) {
         toggleCountArchive(button.dataset.countArchive);
     }
+});
+document.getElementById("eventTableBody").addEventListener("change", (event) => {
+    const input = event.target.closest("input[data-event-select]");
+    if (!input) {
+        return;
+    }
+    if (input.checked) {
+        selectedEventKeys.add(input.dataset.eventSelect);
+    } else {
+        selectedEventKeys.delete(input.dataset.eventSelect);
+    }
+    updateArchiveControls();
 });
 document.getElementById("eventTableBody").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-event-archive]");

@@ -18,6 +18,10 @@ class AnalyticsTests(TestCase):
         self.assertContains(response, "petDock")
         self.assertContains(response, "toggleArchivedCounts")
         self.assertContains(response, "toggleArchivedEvents")
+        self.assertContains(response, "selectCounts")
+        self.assertContains(response, "selectEvents")
+        self.assertContains(response, "archiveSelectedCounts")
+        self.assertContains(response, "archiveSelectedEvents")
         self.assertContains(response, "data-count-archive")
         self.assertContains(response, "data-event-archive")
 

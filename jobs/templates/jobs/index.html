@@ -269,6 +269,12 @@
             border-color: #cfddf8;
         }
 
+        .btn-ghost:disabled,
+        .btn-link:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
         .host-list {
             display: grid;
             gap: 8px;
@@ -398,6 +404,18 @@
 
         .result-card-header {
             justify-content: space-between;
+        }
+
+        .selectable-heading {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .select-cell {
+            width: 34px;
+            text-align: center;
         }
 
         .result-card strong,
@@ -621,6 +639,10 @@
                     <h2>File Results</h2>
                     <div class="actions compact-actions">
                         <button class="btn-ghost" id="toggleFileArchiveBtn" type="button">Show Archived</button>
+                        <button class="btn-ghost" id="selectFileResultsBtn" type="button">Select</button>
+                        <button class="btn-link" id="archiveSelectedFileResultsBtn" type="button">Archive Selected</button>
+                        <button class="btn-link" id="restoreSelectedFileResultsBtn" type="button">Restore Selected</button>
+                        <button class="btn-link" id="archiveFileResultsBtn" type="button">Archive All</button>
                         <button class="btn-link" id="restoreFileResultsBtn" type="button">Restore All</button>
                     </div>
                 </div>
@@ -632,6 +654,10 @@
                     <h2>Execution Records</h2>
                     <div class="actions compact-actions">
                         <button class="btn-ghost" id="toggleRecordArchiveBtn" type="button">Show Archived</button>
+                        <button class="btn-ghost" id="selectRecordsBtn" type="button">Select</button>
+                        <button class="btn-link" id="archiveSelectedRecordsBtn" type="button">Archive Selected</button>
+                        <button class="btn-link" id="restoreSelectedRecordsBtn" type="button">Restore Selected</button>
+                        <button class="btn-link" id="archiveRecordsBtn" type="button">Archive All</button>
                         <button class="btn-link" id="restoreRecordsBtn" type="button">Restore All</button>
                     </div>
                 </div>
@@ -639,6 +665,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th class="select-cell record-selection-column">Select</th>
                                 <th>Time</th>
                                 <th>Action</th>
                                 <th>Instance</th>
@@ -704,6 +731,8 @@ const state = {
     fileResults: [],
     showArchivedFileResults: false,
     showArchivedRecords: false,
+    fileSelectionMode: false,
+    recordSelectionMode: false,
 };
 
 const ACTIVE_STATUS_CODES = new Set([1, 2, 7, 8, 9, 10, 12]);
@@ -723,6 +752,8 @@ let recordsRefreshing = false;
 const archiveStoragePrefix = `jobConsole:${window.location.pathname.split("/").filter(Boolean)[0] || "local"}`;
 const archivedFileResultKeys = loadStoredSet(`${archiveStoragePrefix}:archivedFileResults`);
 const archivedRecordIds = loadStoredSet(`${archiveStoragePrefix}:archivedRecords`);
+const selectedFileResultKeys = new Set();
+const selectedRecordIds = new Set();
 
 function setStatus(message, tone) {
     const el = document.getElementById("statusText");
@@ -1007,6 +1038,13 @@ function renderFileResults(rows) {
         const card = document.createElement("div");
         const archived = archivedFileResultKeys.has(row.archive_key);
         card.className = archived ? "result-card archived" : "result-card";
+        const selected = selectedFileResultKeys.has(row.archive_key);
+        const titleHtml = state.fileSelectionMode
+            ? `<label class="selectable-heading"><input type="checkbox" data-file-select="${escapeHtml(row.archive_key)}" ${selected ? "checked" : ""}> <strong>Host ${escapeHtml(row.bk_host_id || "")}</strong></label>`
+            : `<strong>Host ${escapeHtml(row.bk_host_id || "")}</strong>`;
+        const actionHtml = state.fileSelectionMode
+            ? ""
+            : `<button class="btn-link" type="button" data-file-result="${escapeHtml(row.archive_key)}">${archived ? "Restore" : "Archive"}</button>`;
         const fileText = row.bk_file_list || row.log_content || row.message || "";
         const fileLabel = row.message && !row.bk_file_list && !row.log_content ? "Summary" : "Files";
         const countLine = row.bk_file_cnt !== "" && row.bk_file_cnt !== null && row.bk_file_cnt !== undefined
@@ -1017,8 +1055,8 @@ function renderFileResults(rows) {
             : "";
         card.innerHTML = `
             <div class="result-card-header">
-                <strong>Host ${escapeHtml(row.bk_host_id || "")}</strong>
-                <button class="btn-link" type="button" data-file-result="${escapeHtml(row.archive_key)}">${archived ? "Restore" : "Archive"}</button>
+                ${titleHtml}
+                ${actionHtml}
             </div>
             ${fileText ? `<span>${fileLabel}: ${escapeHtml(fileText)}</span>` : ""}
             ${countLine}
@@ -1099,12 +1137,41 @@ function updateRecordAutoRefresh() {
 
 function updateArchiveControls() {
     const fileToggle = document.getElementById("toggleFileArchiveBtn");
+    const fileSelect = document.getElementById("selectFileResultsBtn");
+    const fileArchiveSelected = document.getElementById("archiveSelectedFileResultsBtn");
+    const fileRestoreSelected = document.getElementById("restoreSelectedFileResultsBtn");
+    const fileArchive = document.getElementById("archiveFileResultsBtn");
     const fileRestore = document.getElementById("restoreFileResultsBtn");
     const recordToggle = document.getElementById("toggleRecordArchiveBtn");
+    const recordSelect = document.getElementById("selectRecordsBtn");
+    const recordArchiveSelected = document.getElementById("archiveSelectedRecordsBtn");
+    const recordRestoreSelected = document.getElementById("restoreSelectedRecordsBtn");
+    const recordArchive = document.getElementById("archiveRecordsBtn");
     const recordRestore = document.getElementById("restoreRecordsBtn");
+    const selectedFileRows = state.fileResults.filter((row) => selectedFileResultKeys.has(row.archive_key));
+    const selectedRecords = state.records.filter((record) => selectedRecordIds.has(String(record.id)));
     fileToggle.textContent = `${state.showArchivedFileResults ? "Hide" : "Show"} Archived (${archivedFileResultKeys.size})`;
+    fileSelect.textContent = state.fileSelectionMode ? "Done" : "Select";
+    fileArchiveSelected.style.display = state.fileSelectionMode ? "" : "none";
+    fileRestoreSelected.style.display = state.fileSelectionMode ? "" : "none";
+    fileArchive.style.display = state.fileSelectionMode ? "none" : "";
+    fileRestore.style.display = state.fileSelectionMode ? "none" : "";
     recordToggle.textContent = `${state.showArchivedRecords ? "Hide" : "Show"} Archived (${archivedRecordIds.size})`;
+    recordSelect.textContent = state.recordSelectionMode ? "Done" : "Select";
+    recordArchiveSelected.style.display = state.recordSelectionMode ? "" : "none";
+    recordRestoreSelected.style.display = state.recordSelectionMode ? "" : "none";
+    recordArchive.style.display = state.recordSelectionMode ? "none" : "";
+    recordRestore.style.display = state.recordSelectionMode ? "none" : "";
+    document.querySelectorAll(".record-selection-column").forEach((cell) => {
+        cell.style.display = state.recordSelectionMode ? "" : "none";
+    });
+    fileArchiveSelected.disabled = !selectedFileRows.some((row) => !archivedFileResultKeys.has(row.archive_key));
+    fileRestoreSelected.disabled = !selectedFileRows.some((row) => archivedFileResultKeys.has(row.archive_key));
+    fileArchive.disabled = !state.fileResults.some((row) => !archivedFileResultKeys.has(row.archive_key));
     fileRestore.disabled = archivedFileResultKeys.size === 0;
+    recordArchiveSelected.disabled = !selectedRecords.some((record) => !archivedRecordIds.has(String(record.id)));
+    recordRestoreSelected.disabled = !selectedRecords.some((record) => archivedRecordIds.has(String(record.id)));
+    recordArchive.disabled = !state.records.some((record) => !archivedRecordIds.has(String(record.id)));
     recordRestore.disabled = archivedRecordIds.size === 0;
 }
 
@@ -1120,6 +1187,28 @@ function toggleFileResultArchive(key) {
 
 function restoreAllFileResults() {
     archivedFileResultKeys.clear();
+    selectedFileResultKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedFileResults`, archivedFileResultKeys);
+    renderFileResults();
+}
+
+function archiveAllFileResults() {
+    state.fileResults.forEach((row) => archivedFileResultKeys.add(row.archive_key));
+    selectedFileResultKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedFileResults`, archivedFileResultKeys);
+    renderFileResults();
+}
+
+function archiveSelectedFileResults() {
+    selectedFileResultKeys.forEach((key) => archivedFileResultKeys.add(key));
+    selectedFileResultKeys.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedFileResults`, archivedFileResultKeys);
+    renderFileResults();
+}
+
+function restoreSelectedFileResults() {
+    selectedFileResultKeys.forEach((key) => archivedFileResultKeys.delete(key));
+    selectedFileResultKeys.clear();
     saveStoredSet(`${archiveStoragePrefix}:archivedFileResults`, archivedFileResultKeys);
     renderFileResults();
 }
@@ -1138,6 +1227,31 @@ function toggleRecordArchive(recordId) {
 
 function restoreAllRecords() {
     archivedRecordIds.clear();
+    selectedRecordIds.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedRecords`, archivedRecordIds);
+    renderRecords();
+    updateArchiveControls();
+}
+
+function archiveAllRecords() {
+    state.records.forEach((record) => archivedRecordIds.add(String(record.id)));
+    selectedRecordIds.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedRecords`, archivedRecordIds);
+    renderRecords();
+    updateArchiveControls();
+}
+
+function archiveSelectedRecords() {
+    selectedRecordIds.forEach((key) => archivedRecordIds.add(key));
+    selectedRecordIds.clear();
+    saveStoredSet(`${archiveStoragePrefix}:archivedRecords`, archivedRecordIds);
+    renderRecords();
+    updateArchiveControls();
+}
+
+function restoreSelectedRecords() {
+    selectedRecordIds.forEach((key) => archivedRecordIds.delete(key));
+    selectedRecordIds.clear();
     saveStoredSet(`${archiveStoragePrefix}:archivedRecords`, archivedRecordIds);
     renderRecords();
     updateArchiveControls();
@@ -1147,7 +1261,7 @@ function renderRecords() {
     const tbody = document.getElementById("recordTableBody");
     tbody.innerHTML = "";
     if (!state.records.length) {
-        tbody.innerHTML = '<tr><td class="empty" colspan="7">No execution records</td></tr>';
+        tbody.innerHTML = '<tr><td class="empty" colspan="8">No execution records</td></tr>';
         updateArchiveControls();
         return;
     }
@@ -1155,7 +1269,7 @@ function renderRecords() {
         state.showArchivedRecords || !archivedRecordIds.has(String(record.id))
     ));
     if (!visibleRecords.length) {
-        tbody.innerHTML = '<tr><td class="empty" colspan="7">All execution records are archived. Use Show Archived to review them.</td></tr>';
+        tbody.innerHTML = '<tr><td class="empty" colspan="8">All execution records are archived. Use Show Archived to review them.</td></tr>';
         updateArchiveControls();
         return;
     }
@@ -1163,8 +1277,11 @@ function renderRecords() {
         const row = document.createElement("tr");
         const statusTone = getStatusTone(record);
         const archived = archivedRecordIds.has(String(record.id));
+        const recordId = String(record.id);
+        const selected = selectedRecordIds.has(recordId);
         row.className = archived ? "archived-record" : "";
         row.innerHTML = `
+            <td class="select-cell record-selection-column"><input type="checkbox" data-record-select="${escapeHtml(recordId)}" ${selected ? "checked" : ""}></td>
             <td>${escapeHtml(record.created_at)}</td>
             <td>${escapeHtml(record.action)}</td>
             <td><a href="${escapeHtml(record.job_url)}" target="_blank">${escapeHtml(record.job_instance_id || "")}</a></td>
@@ -1174,7 +1291,7 @@ function renderRecords() {
             <td>
                 <div class="row-actions">
                     <button class="btn-link" type="button" data-record="${escapeHtml(record.id)}">Refresh</button>
-                    <button class="btn-link" type="button" data-archive-record="${escapeHtml(record.id)}">${archived ? "Restore" : "Archive"}</button>
+                    ${state.recordSelectionMode ? "" : `<button class="btn-link" type="button" data-archive-record="${escapeHtml(record.id)}">${archived ? "Restore" : "Archive"}</button>`}
                 </div>
             </td>
         `;
@@ -1397,12 +1514,44 @@ document.getElementById("toggleFileArchiveBtn").addEventListener("click", () => 
     state.showArchivedFileResults = !state.showArchivedFileResults;
     renderFileResults();
 });
+document.getElementById("selectFileResultsBtn").addEventListener("click", () => {
+    state.fileSelectionMode = !state.fileSelectionMode;
+    if (!state.fileSelectionMode) {
+        selectedFileResultKeys.clear();
+    }
+    renderFileResults();
+});
+document.getElementById("archiveSelectedFileResultsBtn").addEventListener("click", archiveSelectedFileResults);
+document.getElementById("restoreSelectedFileResultsBtn").addEventListener("click", restoreSelectedFileResults);
+document.getElementById("archiveFileResultsBtn").addEventListener("click", archiveAllFileResults);
 document.getElementById("restoreFileResultsBtn").addEventListener("click", restoreAllFileResults);
 document.getElementById("toggleRecordArchiveBtn").addEventListener("click", () => {
     state.showArchivedRecords = !state.showArchivedRecords;
     renderRecords();
 });
+document.getElementById("selectRecordsBtn").addEventListener("click", () => {
+    state.recordSelectionMode = !state.recordSelectionMode;
+    if (!state.recordSelectionMode) {
+        selectedRecordIds.clear();
+    }
+    renderRecords();
+});
+document.getElementById("archiveSelectedRecordsBtn").addEventListener("click", archiveSelectedRecords);
+document.getElementById("restoreSelectedRecordsBtn").addEventListener("click", restoreSelectedRecords);
+document.getElementById("archiveRecordsBtn").addEventListener("click", archiveAllRecords);
 document.getElementById("restoreRecordsBtn").addEventListener("click", restoreAllRecords);
+document.getElementById("fileResults").addEventListener("change", (event) => {
+    const input = event.target.closest("input[data-file-select]");
+    if (!input) {
+        return;
+    }
+    if (input.checked) {
+        selectedFileResultKeys.add(input.dataset.fileSelect);
+    } else {
+        selectedFileResultKeys.delete(input.dataset.fileSelect);
+    }
+    updateArchiveControls();
+});
 document.getElementById("fileResults").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-file-result]");
     if (button) {
@@ -1415,6 +1564,18 @@ document.getElementById("planTableBody").addEventListener("click", (event) => {
         document.getElementById("searchPlanSelect").value = button.dataset.plan;
         document.getElementById("backupPlanSelect").value = button.dataset.plan;
     }
+});
+document.getElementById("recordTableBody").addEventListener("change", (event) => {
+    const input = event.target.closest("input[data-record-select]");
+    if (!input) {
+        return;
+    }
+    if (input.checked) {
+        selectedRecordIds.add(input.dataset.recordSelect);
+    } else {
+        selectedRecordIds.delete(input.dataset.recordSelect);
+    }
+    updateArchiveControls();
 });
 document.getElementById("recordTableBody").addEventListener("click", (event) => {
     const archiveButton = event.target.closest("button[data-archive-record]");
