@@ -186,6 +186,33 @@ class JobConsoleTests(TestCase):
         response = self.client.get(reverse("jobs:records"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["data"][0]["status_text"], "success")
+        self.assertIn("game.log", response.json()["data"][0]["result_summary"])
+
+    def test_refresh_record_collects_logs_after_success(self):
+        record = JobExecutionRecord.objects.create(
+            action=JobExecutionRecord.ACTION_SEARCH,
+            bk_biz_id=2,
+            bk_host_ids="1001",
+            job_plan_id=3001,
+            job_instance_id=99003,
+            job_instance_name="Search game logs",
+            status=2,
+            status_text="running",
+        )
+
+        response = self.client.post(
+            reverse("jobs:refresh_record", args=[record.id]),
+            data="{}",
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["data"]
+        self.assertEqual(payload["logs"][0]["bk_file_list"], "game.log")
+        self.assertIn("game.log", payload["record"]["result_summary"])
+        record.refresh_from_db()
+        self.assertEqual(record.status_text, "success")
+        self.assertIn("game.log", record.result_summary)
 
     def test_refresh_record_handles_terminated_status(self):
         record = JobExecutionRecord.objects.create(

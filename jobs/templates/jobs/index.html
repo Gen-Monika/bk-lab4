@@ -904,10 +904,27 @@ function renderFileResults(rows) {
     });
 }
 
+function renderStoredFileResults() {
+    const rows = state.records
+        .filter((record) => ["search", "backup"].includes(record.action))
+        .filter((record) => record.result_summary || record.error_message)
+        .slice(0, 3)
+        .map((record) => ({
+            bk_host_id: record.bk_host_ids,
+            message: `${record.action} #${record.job_instance_id}: ${record.result_summary || record.error_message}`,
+            bk_file_cnt: "",
+            bk_file_total_size: "",
+        }));
+    if (rows.length) {
+        renderFileResults(rows);
+    }
+}
+
 async function loadRecords(options = {}) {
     try {
         state.records = await requestJson(endpoints.records);
         renderRecords();
+        renderStoredFileResults();
         updateRecordAutoRefresh();
         if (options.refreshActive) {
             await refreshActiveRecords({ silent: true });
@@ -979,10 +996,13 @@ function renderRecords() {
 async function refreshRecord(recordId) {
     try {
         setStatus("Refreshing status...");
-        await requestJson(`${endpoints.records}${recordId}/refresh/`, {
+        const data = await requestJson(`${endpoints.records}${recordId}/refresh/`, {
             method: "POST",
             body: "{}",
         });
+        if (data.logs && data.logs.length) {
+            renderFileResults(data.logs);
+        }
         await loadRecords();
         setStatus("");
     } catch (error) {
@@ -1004,11 +1024,18 @@ async function refreshActiveRecords(options = {}) {
         if (!options.silent) {
             setStatus("Refreshing active job records...");
         }
+        let latestLogs = [];
         for (const record of activeRecords) {
-            await requestJson(`${endpoints.records}${record.id}/refresh/`, {
+            const data = await requestJson(`${endpoints.records}${record.id}/refresh/`, {
                 method: "POST",
                 body: "{}",
             });
+            if (data.logs && data.logs.length) {
+                latestLogs = data.logs;
+            }
+        }
+        if (latestLogs.length) {
+            renderFileResults(latestLogs);
         }
         await loadRecords();
         if (!options.silent) {

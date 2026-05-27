@@ -169,6 +169,7 @@ def refresh_record(request, record_id):
         status_data = service.get_instance_status(record.bk_biz_id, record.job_instance_id)
         step = service.first_step(status_data)
         status_value = resolve_status_value(status_data, step)
+        logs = []
         if step:
             record.step_instance_id = step.get("step_instance_id") or record.step_instance_id
         if status_value not in (None, ""):
@@ -177,8 +178,17 @@ def refresh_record(request, record_id):
             except (TypeError, ValueError):
                 record.status = 0
             record.status_text = status_text(status_value)
+        if _record_finished_successfully(record):
+            try:
+                logs = _collect_record_logs(service, record)
+            except JobServiceError as err:
+                record.error_message = str(err)
+            else:
+                if logs:
+                    record.result_summary = _summarize_logs(logs)
+                    record.error_message = ""
         record.save()
-        return _ok({"record": record.to_dict(), "status": status_data})
+        return _ok({"record": record.to_dict(), "status": status_data, "logs": logs})
     except JobServiceError as err:
         return _service_error(str(err))
 
@@ -274,14 +284,39 @@ def _summarize_logs(logs):
     parts = []
     for row in logs:
         host_id = row.get("bk_host_id", "")
+        file_list = row.get("bk_file_list") or row.get("log_content")
         file_count = row.get("bk_file_cnt")
-        if file_count is not None:
+        if file_list and file_count is not None:
+            parts.append("{}: {} files ({})".format(host_id, file_count, file_list))
+        elif file_list:
+            parts.append("{}: {}".format(host_id, file_list))
+        elif file_count is not None:
             parts.append("{}: {} files".format(host_id, file_count))
         elif row.get("message"):
             parts.append("{}: {}".format(host_id, row["message"]))
         else:
             parts.append("{}: completed".format(host_id))
     return "; ".join(parts)
+
+
+def _record_finished_successfully(record):
+    return record.status == 3 or record.status_text == "success"
+
+
+def _collect_record_logs(service, record):
+    if record.action not in (JobExecutionRecord.ACTION_SEARCH, JobExecutionRecord.ACTION_BACKUP):
+        return []
+    if not record.step_instance_id:
+        return []
+    host_ids = _host_ids(record.bk_host_ids)
+    if not host_ids:
+        return []
+    return service.collect_step_logs(
+        record.bk_biz_id,
+        record.job_instance_id,
+        record.step_instance_id,
+        host_ids,
+    )
 
 
 def _common_execution_payload(payload):
