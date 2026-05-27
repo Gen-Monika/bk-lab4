@@ -55,3 +55,9 @@ python manage.py test analytics jobs
 ## Course Material Note
 
 The provided `BKVision - front-end code package.zip` and `BKVision - back-end code package.zip` are Git LFS pointer files rather than complete zip archives. This project implements the required behavior collection and embedding workflow with Django middleware, local database tables, and a dashboard page that can host the BKVision iframe.
+
+## Structured JOB Results
+
+The inherited JOB console supports structured file results when the JOB script prints a line starting with `BK_JOB_RESULT=`. Reusable templates are stored in `docs/job_scripts/`, including `search_or_backup_structured.sh`, which can handle both search and backup based on whether `backup_path` is provided.
+
+When the BlueKing account does not have permission to create or edit JOB execution plans, the application still works with the existing plan and falls back to summary-style results. This keeps the behavior analytics workflow usable while preserving the optional structured-output path for environments with full JOB permissions.
