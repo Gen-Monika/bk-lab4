@@ -24,6 +24,7 @@ STATUS_TEXT = {
     10: "stopping",
     11: "terminated",
     12: "queueing",
+    13: "terminated",
 }
 
 STATUS_ALIASES = {

@@ -217,3 +217,5 @@ class JobConsoleTests(TestCase):
         payload = response.json()["data"]["record"]
         self.assertEqual(payload["status_text"], "terminated")
         self.assertEqual(status_text("terminated"), "terminated")
+        self.assertEqual(status_text(13), "terminated")
+        self.assertEqual(status_text("13"), "terminated")

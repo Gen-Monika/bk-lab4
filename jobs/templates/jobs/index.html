@@ -644,6 +644,21 @@ const state = {
     records: [],
 };
 
+const ACTIVE_STATUS_CODES = new Set([1, 2, 7, 8, 9, 10, 12]);
+const TERMINAL_STATUS_CODES = new Set([3, 4, 5, 6, 11, 13]);
+const ACTIVE_STATUS_TEXTS = new Set([
+    "not started",
+    "running",
+    "waiting",
+    "forced",
+    "state abnormal",
+    "stopping",
+    "queueing",
+]);
+const RECORD_REFRESH_INTERVAL_MS = 8000;
+let recordRefreshTimer = null;
+let recordsRefreshing = false;
+
 function setStatus(message, tone) {
     const el = document.getElementById("statusText");
     el.textContent = message || "";
@@ -889,12 +904,40 @@ function renderFileResults(rows) {
     });
 }
 
-async function loadRecords() {
+async function loadRecords(options = {}) {
     try {
         state.records = await requestJson(endpoints.records);
         renderRecords();
+        updateRecordAutoRefresh();
+        if (options.refreshActive) {
+            await refreshActiveRecords({ silent: true });
+        }
     } catch (error) {
         setStatus(error.message, "error");
+    }
+}
+
+function isActiveRecord(record) {
+    const status = Number(record.status);
+    if (TERMINAL_STATUS_CODES.has(status)) {
+        return false;
+    }
+    if (ACTIVE_STATUS_CODES.has(status)) {
+        return true;
+    }
+    return ACTIVE_STATUS_TEXTS.has(String(record.status_text || "").toLowerCase());
+}
+
+function updateRecordAutoRefresh() {
+    const hasActiveRecord = state.records.some(isActiveRecord);
+    if (hasActiveRecord && !recordRefreshTimer) {
+        recordRefreshTimer = window.setInterval(() => {
+            refreshActiveRecords({ silent: true });
+        }, RECORD_REFRESH_INTERVAL_MS);
+    }
+    if (!hasActiveRecord && recordRefreshTimer) {
+        window.clearInterval(recordRefreshTimer);
+        recordRefreshTimer = null;
     }
 }
 
@@ -932,6 +975,37 @@ async function refreshRecord(recordId) {
         setStatus("");
     } catch (error) {
         setStatus(error.message, "error");
+    }
+}
+
+async function refreshActiveRecords(options = {}) {
+    if (recordsRefreshing || document.hidden) {
+        return;
+    }
+    const activeRecords = state.records.filter(isActiveRecord);
+    if (!activeRecords.length) {
+        updateRecordAutoRefresh();
+        return;
+    }
+    recordsRefreshing = true;
+    try {
+        if (!options.silent) {
+            setStatus("Refreshing active job records...");
+        }
+        for (const record of activeRecords) {
+            await requestJson(`${endpoints.records}${record.id}/refresh/`, {
+                method: "POST",
+                body: "{}",
+            });
+        }
+        await loadRecords();
+        if (!options.silent) {
+            setStatus("");
+        }
+    } catch (error) {
+        setStatus(error.message, "error");
+    } finally {
+        recordsRefreshing = false;
     }
 }
 
@@ -1110,6 +1184,11 @@ document.getElementById("bizSelect").addEventListener("change", () => {
     renderPlans();
     fillPlanSelects();
 });
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        loadRecords({ refreshActive: true });
+    }
+});
 
 renderHosts();
 renderPlans();
@@ -1118,7 +1197,7 @@ renderRecords();
 initBackgroundTools();
 initPet();
 loadBusinesses();
-loadRecords();
+loadRecords({ refreshActive: true });
 </script>
 </body>
 </html>
