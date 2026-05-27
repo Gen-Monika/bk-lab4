@@ -34,4 +34,4 @@ Started the fourth BlueKing SaaS course project from the finished JOB console. T
 - Added a unified structured JOB script that supports both search and backup by detecting whether `backup_path` is provided, matching single-script JOB plans.
 - Synced the File Results history fix from L3 so more than three search or backup results remain visible after page refresh.
 - Added local archive and restore controls to the analytics homepage tables so API rows and recent events can be hidden without changing collected data.
-- Added archive-all and selection-mode batch archive controls to the analytics homepage and inherited JOB console while preserving default single-row actions.
+- Added selection-mode batch archive controls to the analytics homepage and inherited JOB console with select-archived, select-unarchived, and invert-selection helpers while preserving default single-row actions.

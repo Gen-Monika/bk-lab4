@@ -640,10 +640,11 @@
                     <div class="actions compact-actions">
                         <button class="btn-ghost" id="toggleFileArchiveBtn" type="button">Show Archived</button>
                         <button class="btn-ghost" id="selectFileResultsBtn" type="button">Select</button>
+                        <button class="btn-link" id="selectArchivedFileResultsBtn" type="button">Select Archived</button>
+                        <button class="btn-link" id="selectUnarchivedFileResultsBtn" type="button">Select Unarchived</button>
+                        <button class="btn-link" id="invertFileResultSelectionBtn" type="button">Invert Selection</button>
                         <button class="btn-link" id="archiveSelectedFileResultsBtn" type="button">Archive Selected</button>
                         <button class="btn-link" id="restoreSelectedFileResultsBtn" type="button">Restore Selected</button>
-                        <button class="btn-link" id="archiveFileResultsBtn" type="button">Archive All</button>
-                        <button class="btn-link" id="restoreFileResultsBtn" type="button">Restore All</button>
                     </div>
                 </div>
                 <div class="results" id="fileResults"></div>
@@ -655,10 +656,11 @@
                     <div class="actions compact-actions">
                         <button class="btn-ghost" id="toggleRecordArchiveBtn" type="button">Show Archived</button>
                         <button class="btn-ghost" id="selectRecordsBtn" type="button">Select</button>
+                        <button class="btn-link" id="selectArchivedRecordsBtn" type="button">Select Archived</button>
+                        <button class="btn-link" id="selectUnarchivedRecordsBtn" type="button">Select Unarchived</button>
+                        <button class="btn-link" id="invertRecordSelectionBtn" type="button">Invert Selection</button>
                         <button class="btn-link" id="archiveSelectedRecordsBtn" type="button">Archive Selected</button>
                         <button class="btn-link" id="restoreSelectedRecordsBtn" type="button">Restore Selected</button>
-                        <button class="btn-link" id="archiveRecordsBtn" type="button">Archive All</button>
-                        <button class="btn-link" id="restoreRecordsBtn" type="button">Restore All</button>
                     </div>
                 </div>
                 <div class="table-wrap">
@@ -1138,41 +1140,47 @@ function updateRecordAutoRefresh() {
 function updateArchiveControls() {
     const fileToggle = document.getElementById("toggleFileArchiveBtn");
     const fileSelect = document.getElementById("selectFileResultsBtn");
+    const fileSelectArchived = document.getElementById("selectArchivedFileResultsBtn");
+    const fileSelectUnarchived = document.getElementById("selectUnarchivedFileResultsBtn");
+    const fileInvertSelection = document.getElementById("invertFileResultSelectionBtn");
     const fileArchiveSelected = document.getElementById("archiveSelectedFileResultsBtn");
     const fileRestoreSelected = document.getElementById("restoreSelectedFileResultsBtn");
-    const fileArchive = document.getElementById("archiveFileResultsBtn");
-    const fileRestore = document.getElementById("restoreFileResultsBtn");
     const recordToggle = document.getElementById("toggleRecordArchiveBtn");
     const recordSelect = document.getElementById("selectRecordsBtn");
+    const recordSelectArchived = document.getElementById("selectArchivedRecordsBtn");
+    const recordSelectUnarchived = document.getElementById("selectUnarchivedRecordsBtn");
+    const recordInvertSelection = document.getElementById("invertRecordSelectionBtn");
     const recordArchiveSelected = document.getElementById("archiveSelectedRecordsBtn");
     const recordRestoreSelected = document.getElementById("restoreSelectedRecordsBtn");
-    const recordArchive = document.getElementById("archiveRecordsBtn");
-    const recordRestore = document.getElementById("restoreRecordsBtn");
     const selectedFileRows = state.fileResults.filter((row) => selectedFileResultKeys.has(row.archive_key));
     const selectedRecords = state.records.filter((record) => selectedRecordIds.has(String(record.id)));
     fileToggle.textContent = `${state.showArchivedFileResults ? "Hide" : "Show"} Archived (${archivedFileResultKeys.size})`;
     fileSelect.textContent = state.fileSelectionMode ? "Done" : "Select";
+    fileSelectArchived.style.display = state.fileSelectionMode ? "" : "none";
+    fileSelectUnarchived.style.display = state.fileSelectionMode ? "" : "none";
+    fileInvertSelection.style.display = state.fileSelectionMode ? "" : "none";
     fileArchiveSelected.style.display = state.fileSelectionMode ? "" : "none";
     fileRestoreSelected.style.display = state.fileSelectionMode ? "" : "none";
-    fileArchive.style.display = state.fileSelectionMode ? "none" : "";
-    fileRestore.style.display = state.fileSelectionMode ? "none" : "";
     recordToggle.textContent = `${state.showArchivedRecords ? "Hide" : "Show"} Archived (${archivedRecordIds.size})`;
     recordSelect.textContent = state.recordSelectionMode ? "Done" : "Select";
+    recordSelectArchived.style.display = state.recordSelectionMode ? "" : "none";
+    recordSelectUnarchived.style.display = state.recordSelectionMode ? "" : "none";
+    recordInvertSelection.style.display = state.recordSelectionMode ? "" : "none";
     recordArchiveSelected.style.display = state.recordSelectionMode ? "" : "none";
     recordRestoreSelected.style.display = state.recordSelectionMode ? "" : "none";
-    recordArchive.style.display = state.recordSelectionMode ? "none" : "";
-    recordRestore.style.display = state.recordSelectionMode ? "none" : "";
     document.querySelectorAll(".record-selection-column").forEach((cell) => {
         cell.style.display = state.recordSelectionMode ? "" : "none";
     });
+    fileSelectArchived.disabled = !state.fileResults.some((row) => archivedFileResultKeys.has(row.archive_key));
+    fileSelectUnarchived.disabled = !state.fileResults.some((row) => !archivedFileResultKeys.has(row.archive_key));
+    fileInvertSelection.disabled = state.fileResults.length === 0;
     fileArchiveSelected.disabled = !selectedFileRows.some((row) => !archivedFileResultKeys.has(row.archive_key));
     fileRestoreSelected.disabled = !selectedFileRows.some((row) => archivedFileResultKeys.has(row.archive_key));
-    fileArchive.disabled = !state.fileResults.some((row) => !archivedFileResultKeys.has(row.archive_key));
-    fileRestore.disabled = archivedFileResultKeys.size === 0;
+    recordSelectArchived.disabled = !state.records.some((record) => archivedRecordIds.has(String(record.id)));
+    recordSelectUnarchived.disabled = !state.records.some((record) => !archivedRecordIds.has(String(record.id)));
+    recordInvertSelection.disabled = state.records.length === 0;
     recordArchiveSelected.disabled = !selectedRecords.some((record) => !archivedRecordIds.has(String(record.id)));
     recordRestoreSelected.disabled = !selectedRecords.some((record) => archivedRecordIds.has(String(record.id)));
-    recordArchive.disabled = !state.records.some((record) => !archivedRecordIds.has(String(record.id)));
-    recordRestore.disabled = archivedRecordIds.size === 0;
 }
 
 function toggleFileResultArchive(key) {
@@ -1181,20 +1189,6 @@ function toggleFileResultArchive(key) {
     } else {
         archivedFileResultKeys.add(key);
     }
-    saveStoredSet(`${archiveStoragePrefix}:archivedFileResults`, archivedFileResultKeys);
-    renderFileResults();
-}
-
-function restoreAllFileResults() {
-    archivedFileResultKeys.clear();
-    selectedFileResultKeys.clear();
-    saveStoredSet(`${archiveStoragePrefix}:archivedFileResults`, archivedFileResultKeys);
-    renderFileResults();
-}
-
-function archiveAllFileResults() {
-    state.fileResults.forEach((row) => archivedFileResultKeys.add(row.archive_key));
-    selectedFileResultKeys.clear();
     saveStoredSet(`${archiveStoragePrefix}:archivedFileResults`, archivedFileResultKeys);
     renderFileResults();
 }
@@ -1213,6 +1207,27 @@ function restoreSelectedFileResults() {
     renderFileResults();
 }
 
+function selectFileResultsByArchiveState(archived) {
+    selectedFileResultKeys.clear();
+    state.fileResults.forEach((row) => {
+        if (archivedFileResultKeys.has(row.archive_key) === archived) {
+            selectedFileResultKeys.add(row.archive_key);
+        }
+    });
+    renderFileResults();
+}
+
+function invertFileResultSelection() {
+    state.fileResults.forEach((row) => {
+        if (selectedFileResultKeys.has(row.archive_key)) {
+            selectedFileResultKeys.delete(row.archive_key);
+        } else {
+            selectedFileResultKeys.add(row.archive_key);
+        }
+    });
+    renderFileResults();
+}
+
 function toggleRecordArchive(recordId) {
     const key = String(recordId);
     if (archivedRecordIds.has(key)) {
@@ -1220,22 +1235,6 @@ function toggleRecordArchive(recordId) {
     } else {
         archivedRecordIds.add(key);
     }
-    saveStoredSet(`${archiveStoragePrefix}:archivedRecords`, archivedRecordIds);
-    renderRecords();
-    updateArchiveControls();
-}
-
-function restoreAllRecords() {
-    archivedRecordIds.clear();
-    selectedRecordIds.clear();
-    saveStoredSet(`${archiveStoragePrefix}:archivedRecords`, archivedRecordIds);
-    renderRecords();
-    updateArchiveControls();
-}
-
-function archiveAllRecords() {
-    state.records.forEach((record) => archivedRecordIds.add(String(record.id)));
-    selectedRecordIds.clear();
     saveStoredSet(`${archiveStoragePrefix}:archivedRecords`, archivedRecordIds);
     renderRecords();
     updateArchiveControls();
@@ -1253,6 +1252,31 @@ function restoreSelectedRecords() {
     selectedRecordIds.forEach((key) => archivedRecordIds.delete(key));
     selectedRecordIds.clear();
     saveStoredSet(`${archiveStoragePrefix}:archivedRecords`, archivedRecordIds);
+    renderRecords();
+    updateArchiveControls();
+}
+
+function selectRecordsByArchiveState(archived) {
+    selectedRecordIds.clear();
+    state.records.forEach((record) => {
+        const key = String(record.id);
+        if (archivedRecordIds.has(key) === archived) {
+            selectedRecordIds.add(key);
+        }
+    });
+    renderRecords();
+    updateArchiveControls();
+}
+
+function invertRecordSelection() {
+    state.records.forEach((record) => {
+        const key = String(record.id);
+        if (selectedRecordIds.has(key)) {
+            selectedRecordIds.delete(key);
+        } else {
+            selectedRecordIds.add(key);
+        }
+    });
     renderRecords();
     updateArchiveControls();
 }
@@ -1521,10 +1545,11 @@ document.getElementById("selectFileResultsBtn").addEventListener("click", () => 
     }
     renderFileResults();
 });
+document.getElementById("selectArchivedFileResultsBtn").addEventListener("click", () => selectFileResultsByArchiveState(true));
+document.getElementById("selectUnarchivedFileResultsBtn").addEventListener("click", () => selectFileResultsByArchiveState(false));
+document.getElementById("invertFileResultSelectionBtn").addEventListener("click", invertFileResultSelection);
 document.getElementById("archiveSelectedFileResultsBtn").addEventListener("click", archiveSelectedFileResults);
 document.getElementById("restoreSelectedFileResultsBtn").addEventListener("click", restoreSelectedFileResults);
-document.getElementById("archiveFileResultsBtn").addEventListener("click", archiveAllFileResults);
-document.getElementById("restoreFileResultsBtn").addEventListener("click", restoreAllFileResults);
 document.getElementById("toggleRecordArchiveBtn").addEventListener("click", () => {
     state.showArchivedRecords = !state.showArchivedRecords;
     renderRecords();
@@ -1536,10 +1561,11 @@ document.getElementById("selectRecordsBtn").addEventListener("click", () => {
     }
     renderRecords();
 });
+document.getElementById("selectArchivedRecordsBtn").addEventListener("click", () => selectRecordsByArchiveState(true));
+document.getElementById("selectUnarchivedRecordsBtn").addEventListener("click", () => selectRecordsByArchiveState(false));
+document.getElementById("invertRecordSelectionBtn").addEventListener("click", invertRecordSelection);
 document.getElementById("archiveSelectedRecordsBtn").addEventListener("click", archiveSelectedRecords);
 document.getElementById("restoreSelectedRecordsBtn").addEventListener("click", restoreSelectedRecords);
-document.getElementById("archiveRecordsBtn").addEventListener("click", archiveAllRecords);
-document.getElementById("restoreRecordsBtn").addEventListener("click", restoreAllRecords);
 document.getElementById("fileResults").addEventListener("change", (event) => {
     const input = event.target.closest("input[data-file-select]");
     if (!input) {
