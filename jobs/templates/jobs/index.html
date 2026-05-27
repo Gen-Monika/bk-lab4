@@ -928,6 +928,18 @@ function isActiveRecord(record) {
     return ACTIVE_STATUS_TEXTS.has(String(record.status_text || "").toLowerCase());
 }
 
+function getStatusTone(record) {
+    const status = Number(record.status);
+    const statusText = String(record.status_text || "").toLowerCase();
+    if (status === 3 || statusText === "success") {
+        return "success";
+    }
+    if ([4, 9, 10, 11, 13].includes(status) || ["failed", "state abnormal", "stopping", "terminated"].includes(statusText)) {
+        return "error";
+    }
+    return "";
+}
+
 function updateRecordAutoRefresh() {
     const hasActiveRecord = state.records.some(isActiveRecord);
     if (hasActiveRecord && !recordRefreshTimer) {
@@ -950,7 +962,7 @@ function renderRecords() {
     }
     state.records.forEach((record) => {
         const row = document.createElement("tr");
-        const statusTone = record.status === 3 ? "success" : (record.status === 4 ? "error" : "");
+        const statusTone = getStatusTone(record);
         row.innerHTML = `
             <td>${escapeHtml(record.created_at)}</td>
             <td>${escapeHtml(record.action)}</td>
