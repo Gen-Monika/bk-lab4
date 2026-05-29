@@ -489,6 +489,186 @@
             border-radius: 6px;
         }
 
+        body.guide-open {
+            overflow: hidden;
+        }
+
+        .guide-help-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 34px;
+            padding: 0 12px;
+            color: #245fc7;
+            background: #fff;
+            border: 1px solid #b9cae8;
+            border-radius: 6px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .guide-help-button:hover {
+            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .guide-modal[hidden] {
+            display: none !important;
+        }
+
+        .guide-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .guide-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(6px);
+        }
+
+        .guide-dialog {
+            position: relative;
+            width: min(1000px, 100%);
+            max-height: min(780px, calc(100vh - 48px));
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid rgba(220, 228, 239, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 30px 84px rgba(15, 23, 42, 0.3);
+        }
+
+        .guide-close {
+            position: absolute;
+            right: 14px;
+            top: 10px;
+            z-index: 1;
+            width: 32px;
+            height: 32px;
+            color: #526071;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--line);
+            border-radius: 50%;
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .guide-slide {
+            display: none;
+            grid-template-columns: minmax(0, 1.18fr) minmax(290px, 0.82fr);
+            gap: 24px;
+            padding: 28px;
+        }
+
+        .guide-slide.active {
+            display: grid;
+        }
+
+        .guide-slide figure {
+            margin: 0;
+            overflow: hidden;
+            background: #f4f7fb;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .guide-slide img {
+            display: block;
+            width: 100%;
+            height: 360px;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        .guide-slide article {
+            align-self: center;
+        }
+
+        .guide-kicker {
+            margin: 0 0 8px;
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .guide-slide h2 {
+            margin: 0 0 12px;
+            color: var(--ink);
+            font-size: 26px;
+            line-height: 1.16;
+        }
+
+        .guide-slide p,
+        .guide-slide li {
+            color: var(--muted);
+            line-height: 1.72;
+        }
+
+        .guide-slide ul {
+            margin: 12px 0 0;
+            padding-left: 18px;
+        }
+
+        .guide-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 20px;
+            background: #f8fafc;
+            border-top: 1px solid var(--line);
+        }
+
+        .guide-nav {
+            min-width: 96px;
+            height: 34px;
+            padding: 0 12px;
+            color: #245fc7;
+            background: #fff;
+            border: 1px solid #b9cae8;
+            border-radius: 6px;
+        }
+
+        .guide-nav.primary {
+            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .guide-nav:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .guide-dots {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .guide-dots button {
+            width: 10px;
+            height: 10px;
+            padding: 0;
+            background: #c3cfdf;
+            border: 0;
+            border-radius: 999px;
+        }
+
+        .guide-dots button.active {
+            width: 22px;
+            background: var(--accent);
+        }
+
         @media (max-width: 980px) {
             .grid,
             .two-cols {
@@ -526,6 +706,30 @@
             .pet-body {
                 height: 144px;
             }
+
+            .guide-dialog {
+                max-height: calc(100vh - 28px);
+                overflow-y: auto;
+            }
+
+            .guide-slide,
+            .guide-slide.active {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+
+            .guide-slide img {
+                height: 260px;
+            }
+
+            .guide-slide h2 {
+                font-size: 22px;
+            }
+
+            .guide-footer {
+                position: sticky;
+                bottom: 0;
+            }
         }
     </style>
 </head>
@@ -547,6 +751,7 @@
                 <button type="button" data-bg="clubroom">Clubroom</button>
                 <button type="button" data-bg="beach">Beach</button>
             </div>
+            <button class="guide-help-button" type="button" data-guide-open>Help</button>
             <div class="status" id="statusText"></div>
         </div>
     </header>
@@ -683,6 +888,78 @@
             </section>
         </div>
     </main>
+</div>
+
+<div class="guide-modal" id="guideModal" aria-modal="true" role="dialog" aria-labelledby="guideTitle" hidden>
+    <div class="guide-backdrop" data-guide-close></div>
+    <div class="guide-dialog">
+        <button class="guide-close" type="button" data-guide-close aria-label="Close">×</button>
+        <section class="guide-slide active" data-guide-slide>
+            <figure><img src="{% static 'jobs/help/lab4-job-console.jpg' %}" alt="JOB console"></figure>
+            <article>
+                <p class="guide-kicker">Lab 3 · JOB</p>
+                <h2 id="guideTitle">作业平台控制台</h2>
+                <p>JOB 页面负责主机范围、计划选择、文件查询和日志备份，统一承接实验中的执行入口。</p>
+                <ul>
+                    <li>顶部保留返回 BKVision 的入口。</li>
+                    <li>背景和桌宠设置会按浏览器保存。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'jobs/help/lab4-job-records.jpg' %}" alt="Waiting execution records"></figure>
+            <article>
+                <p class="guide-kicker">执行记录</p>
+                <h2>查询申请与执行状态</h2>
+                <p>执行记录先展示 waiting、approved 和 platform status 等状态，再由刷新逻辑补全最终结果。</p>
+                <ul>
+                    <li>未确认任务保持可见，便于核验流程。</li>
+                    <li>刷新后会回填最新状态与摘要。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'jobs/help/lab4-job-pass.jpg' %}" alt="Approved execution"></figure>
+            <article>
+                <p class="guide-kicker">平台通过</p>
+                <h2>作业平台执行链路</h2>
+                <p>查询或备份指令提交后，JOB 平台通过时会进入可追踪的执行链路，便于后续刷新结果。</p>
+                <ul>
+                    <li>保留单条记录操作。</li>
+                    <li>结构化结果可回填文件计数和大小信息。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'jobs/help/lab4-job-result.jpg' %}" alt="Structured file result"></figure>
+            <article>
+                <p class="guide-kicker">结果展示</p>
+                <h2>文件查询与备份结果</h2>
+                <p>File Results 会把 search / backup 的结果按卡片呈现，超过三条也不会在刷新后丢失。</p>
+                <ul>
+                    <li>归档项和普通项用不同背景区分。</li>
+                    <li>结果行保留标题、摘要和状态信息。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'jobs/help/lab4-job-archive.jpg' %}" alt="Archive controls"></figure>
+            <article>
+                <p class="guide-kicker">整理归档</p>
+                <h2>批量归档与恢复</h2>
+                <p>执行记录和文件结果都支持选择、反选、按归档状态批量整理，让页面保持可读。</p>
+                <ul>
+                    <li>默认保留单条操作。</li>
+                    <li>进入选择模式后可批量处理多条条目。</li>
+                </ul>
+            </article>
+        </section>
+        <div class="guide-footer">
+            <button class="guide-nav" type="button" id="guidePrev">Previous</button>
+            <div class="guide-dots" id="guideDots" aria-label="Guide pages"></div>
+            <button class="guide-nav primary" type="button" id="guideNext">Next</button>
+        </div>
+    </div>
 </div>
 
 <aside class="pet-dock" id="petDock" aria-label="Desktop pet">
@@ -1388,6 +1665,78 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
+function initGuideModal(storageKey) {
+    const modal = document.getElementById("guideModal");
+    if (!modal) return;
+    const slides = Array.from(modal.querySelectorAll("[data-guide-slide]"));
+    const prev = document.getElementById("guidePrev");
+    const next = document.getElementById("guideNext");
+    const dots = document.getElementById("guideDots");
+    if (!slides.length || !prev || !next || !dots) return;
+    let index = 0;
+
+    function storageGet() {
+        try { return window.localStorage.getItem(storageKey); } catch (error) { return "1"; }
+    }
+
+    function storageSet() {
+        try { window.localStorage.setItem(storageKey, "1"); } catch (error) { return; }
+    }
+
+    function render() {
+        slides.forEach((slide, slideIndex) => {
+            slide.classList.toggle("active", slideIndex === index);
+        });
+        dots.innerHTML = slides.map((_, dotIndex) => `<button type="button" class="${dotIndex === index ? "active" : ""}" data-guide-dot="${dotIndex}" aria-label="Go to page ${dotIndex + 1}"></button>`).join("");
+        prev.disabled = index === 0;
+        next.textContent = index === slides.length - 1 ? "Done" : "Next";
+    }
+
+    function openGuide(autoOpen) {
+        index = 0;
+        render();
+        modal.hidden = false;
+        document.body.classList.add("guide-open");
+        if (autoOpen) storageSet();
+    }
+
+    function closeGuide() {
+        modal.hidden = true;
+        document.body.classList.remove("guide-open");
+    }
+
+    document.querySelectorAll("[data-guide-open]").forEach((button) => {
+        button.addEventListener("click", () => openGuide(false));
+    });
+    modal.querySelectorAll("[data-guide-close]").forEach((button) => {
+        button.addEventListener("click", closeGuide);
+    });
+    prev.addEventListener("click", () => {
+        index = Math.max(0, index - 1);
+        render();
+    });
+    next.addEventListener("click", () => {
+        if (index === slides.length - 1) {
+            closeGuide();
+            return;
+        }
+        index = Math.min(slides.length - 1, index + 1);
+        render();
+    });
+    dots.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-guide-dot]");
+        if (!button) return;
+        index = Number(button.dataset.guideDot);
+        render();
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.hidden) closeGuide();
+    });
+    if (storageGet() !== "1") {
+        window.setTimeout(() => openGuide(true), 450);
+    }
+}
+
 function applyBackground(name) {
     const selected = visualAssets.backgrounds[name] ? name : "lighthouse";
     document.documentElement.style.setProperty("--page-bg", `url("${visualAssets.backgrounds[selected]}")`);
@@ -1631,6 +1980,7 @@ renderHosts();
 renderPlans();
 renderFileResults([]);
 renderRecords();
+initGuideModal("job-console.guide.seen.v1");
 initBackgroundTools();
 initPet();
 loadBusinesses();

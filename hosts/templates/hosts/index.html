@@ -393,6 +393,186 @@
             border-radius: 6px;
         }
 
+        body.guide-open {
+            overflow: hidden;
+        }
+
+        .guide-help-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 34px;
+            padding: 0 12px;
+            color: #245fc7;
+            background: #fff;
+            border: 1px solid #b8caf1;
+            border-radius: 6px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .guide-help-button:hover {
+            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .guide-modal[hidden] {
+            display: none !important;
+        }
+
+        .guide-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .guide-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(6px);
+        }
+
+        .guide-dialog {
+            position: relative;
+            width: min(1000px, 100%);
+            max-height: min(780px, calc(100vh - 48px));
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid rgba(220, 228, 239, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 30px 84px rgba(15, 23, 42, 0.3);
+        }
+
+        .guide-close {
+            position: absolute;
+            right: 14px;
+            top: 10px;
+            z-index: 1;
+            width: 32px;
+            height: 32px;
+            color: #526071;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--line);
+            border-radius: 50%;
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .guide-slide {
+            display: none;
+            grid-template-columns: minmax(0, 1.18fr) minmax(290px, 0.82fr);
+            gap: 24px;
+            padding: 28px;
+        }
+
+        .guide-slide.active {
+            display: grid;
+        }
+
+        .guide-slide figure {
+            margin: 0;
+            overflow: hidden;
+            background: #f4f7fb;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .guide-slide img {
+            display: block;
+            width: 100%;
+            height: 360px;
+            object-fit: contain;
+            object-position: center;
+        }
+
+        .guide-slide article {
+            align-self: center;
+        }
+
+        .guide-kicker {
+            margin: 0 0 8px;
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .guide-slide h2 {
+            margin: 0 0 12px;
+            color: var(--ink);
+            font-size: 26px;
+            line-height: 1.16;
+        }
+
+        .guide-slide p,
+        .guide-slide li {
+            color: var(--muted);
+            line-height: 1.72;
+        }
+
+        .guide-slide ul {
+            margin: 12px 0 0;
+            padding-left: 18px;
+        }
+
+        .guide-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 20px;
+            background: #f8fafc;
+            border-top: 1px solid var(--line);
+        }
+
+        .guide-nav {
+            min-width: 96px;
+            height: 34px;
+            padding: 0 12px;
+            color: #245fc7;
+            background: #fff;
+            border: 1px solid #b8caf1;
+            border-radius: 6px;
+        }
+
+        .guide-nav.primary {
+            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .guide-nav:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .guide-dots {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .guide-dots button {
+            width: 10px;
+            height: 10px;
+            padding: 0;
+            background: #c3cfdf;
+            border: 0;
+            border-radius: 999px;
+        }
+
+        .guide-dots button.active {
+            width: 22px;
+            background: var(--accent);
+        }
+
         @media (max-width: 980px) {
             .topbar {
                 align-items: flex-start;
@@ -445,6 +625,30 @@
             .pet-body {
                 height: 144px;
             }
+
+            .guide-dialog {
+                max-height: calc(100vh - 28px);
+                overflow-y: auto;
+            }
+
+            .guide-slide,
+            .guide-slide.active {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+
+            .guide-slide img {
+                height: 260px;
+            }
+
+            .guide-slide h2 {
+                font-size: 22px;
+            }
+
+            .guide-footer {
+                position: sticky;
+                bottom: 0;
+            }
         }
     </style>
 </head>
@@ -466,6 +670,7 @@
                 <button type="button" data-bg="clubroom">Clubroom</button>
                 <button type="button" data-bg="beach">Beach</button>
             </div>
+            <button class="guide-help-button" type="button" data-guide-open>Help</button>
         </div>
     </header>
 
@@ -532,6 +737,66 @@
             <div class="detail-grid" id="detailGrid"></div>
         </section>
     </main>
+</div>
+
+<div class="guide-modal" id="guideModal" aria-modal="true" role="dialog" aria-labelledby="guideTitle" hidden>
+    <div class="guide-backdrop" data-guide-close></div>
+    <div class="guide-dialog">
+        <button class="guide-close" type="button" data-guide-close aria-label="Close">×</button>
+        <section class="guide-slide active" data-guide-slide>
+            <figure><img src="{% static 'hosts/help/lab4-host-ui.jpg' %}" alt="Custom CMDB UI"></figure>
+            <article>
+                <p class="guide-kicker">Lab 2 · CMDB</p>
+                <h2 id="guideTitle">个性化主机管理界面</h2>
+                <p>CMDB 页沿用统一的背景切换与桌宠主题，作为实验展示时的第一个视觉入口。</p>
+                <ul>
+                    <li>页面顶部保留返回 BKVision 的入口。</li>
+                    <li>背景和桌宠选择会保存在本地浏览器中。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'hosts/help/lab4-host-cascade.jpg' %}" alt="Business to module cascade"></figure>
+            <article>
+                <p class="guide-kicker">筛选联动</p>
+                <h2>业务 / 集群 / 模块级联查询</h2>
+                <p>通过业务、集群、模块和主机名等条件联动筛选，快速定位目标主机范围。</p>
+                <ul>
+                    <li>下拉框会随上一级选择自动刷新。</li>
+                    <li>搜索结果会写入主机列表表格。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'hosts/help/lab4-host-list.jpg' %}" alt="Host list"></figure>
+            <article>
+                <p class="guide-kicker">主机列表</p>
+                <h2>主机搜索结果与快捷详情</h2>
+                <p>列表只保留有用字段，便于扫描主机基础信息，并可直接进入详情页查看完整对象数据。</p>
+                <ul>
+                    <li>支持一键查看详情。</li>
+                    <li>查询失败会在状态栏提示。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'hosts/help/lab4-host-detail.jpg' %}" alt="Host detail"></figure>
+            <article>
+                <p class="guide-kicker">主机详情</p>
+                <h2>收敛后的主机明细字段</h2>
+                <p>详情页只展示真正属于主机的核心字段，空值和测试字段会在前端被折叠或剔除，避免页面臃肿。</p>
+                <ul>
+                    <li>异常字段不再干扰展示。</li>
+                    <li>与报告截图中的主机查询流程一致。</li>
+                </ul>
+            </article>
+        </section>
+        <div class="guide-footer">
+            <button class="guide-nav" type="button" id="guidePrev">Previous</button>
+            <div class="guide-dots" id="guideDots" aria-label="Guide pages"></div>
+            <button class="guide-nav primary" type="button" id="guideNext">Next</button>
+        </div>
+    </div>
 </div>
 
 <aside class="pet-dock" id="petDock" aria-label="Desktop pet">
@@ -845,6 +1110,78 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
+function initGuideModal(storageKey) {
+    const modal = document.getElementById("guideModal");
+    if (!modal) return;
+    const slides = Array.from(modal.querySelectorAll("[data-guide-slide]"));
+    const prev = document.getElementById("guidePrev");
+    const next = document.getElementById("guideNext");
+    const dots = document.getElementById("guideDots");
+    if (!slides.length || !prev || !next || !dots) return;
+    let index = 0;
+
+    function storageGet() {
+        try { return window.localStorage.getItem(storageKey); } catch (error) { return "1"; }
+    }
+
+    function storageSet() {
+        try { window.localStorage.setItem(storageKey, "1"); } catch (error) { return; }
+    }
+
+    function render() {
+        slides.forEach((slide, slideIndex) => {
+            slide.classList.toggle("active", slideIndex === index);
+        });
+        dots.innerHTML = slides.map((_, dotIndex) => `<button type="button" class="${dotIndex === index ? "active" : ""}" data-guide-dot="${dotIndex}" aria-label="Go to page ${dotIndex + 1}"></button>`).join("");
+        prev.disabled = index === 0;
+        next.textContent = index === slides.length - 1 ? "Done" : "Next";
+    }
+
+    function openGuide(autoOpen) {
+        index = 0;
+        render();
+        modal.hidden = false;
+        document.body.classList.add("guide-open");
+        if (autoOpen) storageSet();
+    }
+
+    function closeGuide() {
+        modal.hidden = true;
+        document.body.classList.remove("guide-open");
+    }
+
+    document.querySelectorAll("[data-guide-open]").forEach((button) => {
+        button.addEventListener("click", () => openGuide(false));
+    });
+    modal.querySelectorAll("[data-guide-close]").forEach((button) => {
+        button.addEventListener("click", closeGuide);
+    });
+    prev.addEventListener("click", () => {
+        index = Math.max(0, index - 1);
+        render();
+    });
+    next.addEventListener("click", () => {
+        if (index === slides.length - 1) {
+            closeGuide();
+            return;
+        }
+        index = Math.min(slides.length - 1, index + 1);
+        render();
+    });
+    dots.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-guide-dot]");
+        if (!button) return;
+        index = Number(button.dataset.guideDot);
+        render();
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.hidden) closeGuide();
+    });
+    if (storageGet() !== "1") {
+        window.setTimeout(() => openGuide(true), 450);
+    }
+}
+
 function applyBackground(name) {
     const selected = visualAssets.backgrounds[name] ? name : "feather";
     document.documentElement.style.setProperty("--page-bg", `url("${visualAssets.backgrounds[selected]}")`);
@@ -1006,6 +1343,7 @@ document.getElementById("hostTableBody").addEventListener("click", (event) => {
 });
 
 renderHosts([]);
+initGuideModal("host-manager.guide.seen.v1");
 initBackgroundTools();
 initPet();
 loadBusinesses();

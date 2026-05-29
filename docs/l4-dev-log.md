@@ -38,6 +38,8 @@ Started the fourth BlueKing SaaS course project from the finished JOB console. T
 - Added a paged Help guide with screenshots for behavior collection, archive controls, BKVision data source, dashboard visualization, and SaaS iframe embedding.
 - The guide opens once on first entry through `localStorage` and can be reopened from the analytics toolbar.
 - Added compressed guide screenshots under `static/analytics/help/`.
+- Extended the same paged Help experience to the inherited CMDB and JOB pages, with page-specific screenshots and independent first-entry `localStorage` markers.
+- Added compressed CMDB and JOB guide screenshots under `static/hosts/help/` and `static/jobs/help/`.
 
 ## Guide Verification
 

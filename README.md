@@ -11,7 +11,7 @@ BlueKing Django SaaS course project for collecting user behavior data from CMDB 
 - `/analytics/` dashboard with total calls, tracked API count, backup action count, local event tables, and BKVision iframe embedding.
 - `BKVISION_DASHBOARD_URL` environment variable for switching the embedded BKVision dashboard after publishing it on BlueKing.
 - Visual theme controls and draggable desktop pet interaction reused as lightweight project polish.
-- Paged Help guide with screenshots for behavior collection, archive controls, BKVision data source, dashboard configuration, and SaaS iframe embedding.
+- Paged Help guides with screenshots for the BKVision dashboard, inherited CMDB host workflow, and inherited JOB execution workflow.
 
 ## Routes
 
@@ -63,4 +63,4 @@ The inherited JOB console supports structured file results when the JOB script p
 
 When the BlueKing account does not have permission to create or edit JOB execution plans, the application still works with the existing plan and falls back to summary-style results. This keeps the behavior analytics workflow usable while preserving the optional structured-output path for environments with full JOB permissions.
 
-The analytics frontend includes a Help guide that opens once on first entry and remains available from the top toolbar. Compressed guide screenshots are stored under `static/analytics/help/`.
+The analytics, CMDB, and JOB frontends include Help guides that open once on first entry and remain available from the top toolbar. Compressed guide screenshots are stored under `static/analytics/help/`, `static/hosts/help/`, and `static/jobs/help/`.
