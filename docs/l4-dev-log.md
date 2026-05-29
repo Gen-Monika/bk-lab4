@@ -35,3 +35,11 @@ Started the fourth BlueKing SaaS course project from the finished JOB console. T
 - Synced the File Results history fix from L3 so more than three search or backup results remain visible after page refresh.
 - Added local archive and restore controls to the analytics homepage tables so API rows and recent events can be hidden without changing collected data.
 - Added selection-mode batch archive controls to the analytics homepage and inherited JOB console with select-archived, select-unarchived, and invert-selection helpers while preserving default single-row actions.
+- Added a paged Help guide with screenshots for behavior collection, archive controls, BKVision data source, dashboard visualization, and SaaS iframe embedding.
+- The guide opens once on first entry through `localStorage` and can be reopened from the analytics toolbar.
+- Added compressed guide screenshots under `static/analytics/help/`.
+
+## Guide Verification
+
+- Django template parse: OK
+- Embedded guide JavaScript syntax check with `node --check`: OK

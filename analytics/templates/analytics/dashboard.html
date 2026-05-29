@@ -373,6 +373,7 @@
                 <button type="button" data-bg="beach">Beach</button>
             </div>
             <button class="btn" id="refreshBtn" type="button">Refresh</button>
+            <button class="guide-help-button" type="button" data-guide-open>Help</button>
         </div>
     </header>
 
@@ -466,6 +467,79 @@
     </main>
 </div>
 
+
+
+<div class="guide-modal" id="guideModal" aria-modal="true" role="dialog" aria-labelledby="guideTitle" hidden>
+    <div class="guide-backdrop" data-guide-close></div>
+    <div class="guide-dialog">
+        <button class="guide-close" type="button" data-guide-close aria-label="Close">×</button>
+        <section class="guide-slide active" data-guide-slide>
+            <figure><img src="{% static 'analytics/help/lab4-console.jpg' %}" alt="Behavior analytics console"></figure>
+            <article>
+                <p class="guide-kicker">Lab 4 · BKVision</p>
+                <h2 id="guideTitle">用户行为采集面板</h2>
+                <p>Django 中间件采集 CMDB 和 JOB 相关接口访问，将 API 类别、名称、用户、状态码和耗时写入数据库。</p>
+                <ul>
+                    <li>统计卡片展示总调用量、API 数和备份动作数。</li>
+                    <li>采集异常被隔离，不影响原业务请求。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'analytics/help/lab4-archive.jpg' %}" alt="Analytics archive controls"></figure>
+            <article>
+                <p class="guide-kicker">事件管理</p>
+                <h2>行为记录归档与多选</h2>
+                <p>本地行为表支持归档、恢复、按归档状态批量选择和反向选择，使大量测试事件也能保持可读。</p>
+                <ul>
+                    <li>聚合 API 数据和明细事件都支持整理。</li>
+                    <li>与 Lab3 执行记录管理交互保持一致。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'analytics/help/lab4-bkvision-datasource.jpg' %}" alt="BKVision datasource"></figure>
+            <article>
+                <p class="guide-kicker">数据源</p>
+                <h2>BKVision 连接 SaaS 数据库</h2>
+                <p>BKVision 通过 SaaS MySQL 数据源读取中间件写入的统计表和明细表，为图表配置提供数据基础。</p>
+                <ul>
+                    <li>数据源与应用数据库保持一致。</li>
+                    <li>图表查询使用 SQL 聚合行为数据。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'analytics/help/lab4-bkvision-dashboard.jpg' %}" alt="BKVision dashboard"></figure>
+            <article>
+                <p class="guide-kicker">可视化</p>
+                <h2>行为类型分布与接口排行</h2>
+                <p>仪表盘使用饼图、柱状图和明细表展示 API 行为类型分布、接口调用排行和 JOB 操作情况。</p>
+                <ul>
+                    <li>选择单人测试也能形成图表的数据维度。</li>
+                    <li>可从最近事件继续追踪用户操作路径。</li>
+                </ul>
+            </article>
+        </section>
+        <section class="guide-slide" data-guide-slide>
+            <figure><img src="{% static 'analytics/help/lab4-embed.jpg' %}" alt="Embedded BKVision dashboard"></figure>
+            <article>
+                <p class="guide-kicker">嵌入展示</p>
+                <h2>SaaS 页面嵌入 BKVision</h2>
+                <p>发布后的仪表盘通过环境变量配置到页面中，以 iframe 方式嵌入，源码中不固定平台生成的私有链接。</p>
+                <ul>
+                    <li>保留 JOB Console 和 Host Manager 入口。</li>
+                    <li>仪表盘发布后可在同一 SaaS 页面查看。</li>
+                </ul>
+            </article>
+        </section>
+        <div class="guide-footer">
+            <button class="guide-nav" type="button" id="guidePrev">Previous</button>
+            <div class="guide-dots" id="guideDots" aria-label="Guide pages"></div>
+            <button class="guide-nav primary" type="button" id="guideNext">Next</button>
+        </div>
+    </div>
+</div>
 <aside class="pet-dock" id="petDock" aria-label="Desktop pet">
     <img class="pet-body" id="petBody" src="{% static 'hosts/visuals/pets/noa.png' %}" alt="Noa" draggable="false">
     <div class="pet-controls">
@@ -481,6 +555,78 @@
 </aside>
 
 <script>
+
+function initGuideModal(storageKey) {
+    const modal = document.getElementById("guideModal");
+    if (!modal) return;
+    const slides = Array.from(modal.querySelectorAll("[data-guide-slide]"));
+    const prev = document.getElementById("guidePrev");
+    const next = document.getElementById("guideNext");
+    const dots = document.getElementById("guideDots");
+    let index = 0;
+
+    function storageGet() {
+        try { return window.localStorage.getItem(storageKey); } catch (error) { return "1"; }
+    }
+
+    function storageSet() {
+        try { window.localStorage.setItem(storageKey, "1"); } catch (error) { return; }
+    }
+
+    function render() {
+        slides.forEach((slide, slideIndex) => {
+            slide.classList.toggle("active", slideIndex === index);
+        });
+        dots.innerHTML = slides.map((_, dotIndex) => `<button type="button" class="${dotIndex === index ? "active" : ""}" data-guide-dot="${dotIndex}" aria-label="Go to page ${dotIndex + 1}"></button>`).join("");
+        prev.disabled = index === 0;
+        next.textContent = index === slides.length - 1 ? "Done" : "Next";
+    }
+
+    function openGuide(autoOpen) {
+        index = 0;
+        render();
+        modal.hidden = false;
+        document.body.classList.add("guide-open");
+        if (autoOpen) storageSet();
+    }
+
+    function closeGuide() {
+        modal.hidden = true;
+        document.body.classList.remove("guide-open");
+    }
+
+    document.querySelectorAll("[data-guide-open]").forEach((button) => {
+        button.addEventListener("click", () => openGuide(false));
+    });
+    modal.querySelectorAll("[data-guide-close]").forEach((button) => {
+        button.addEventListener("click", closeGuide);
+    });
+    prev.addEventListener("click", () => {
+        index = Math.max(0, index - 1);
+        render();
+    });
+    next.addEventListener("click", () => {
+        if (index === slides.length - 1) {
+            closeGuide();
+            return;
+        }
+        index += 1;
+        render();
+    });
+    dots.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-guide-dot]");
+        if (!button) return;
+        index = Number(button.dataset.guideDot);
+        render();
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.hidden) closeGuide();
+    });
+    if (storageGet() !== "1") {
+        window.setTimeout(() => openGuide(true), 450);
+    }
+}
+
 const endpoints = {
     summary: "{% url 'analytics:summary' %}",
 };
@@ -1011,6 +1157,7 @@ document.getElementById("eventTableBody").addEventListener("click", (event) => {
 initBackgroundTools();
 initPet();
 loadSummary();
+initGuideModal("bkvision-dashboard.guide.seen.v1");
 </script>
 </body>
 </html>
